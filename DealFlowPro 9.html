@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>DealOMetor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#070714;color:#fff;font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:90px}
+button,input,select,textarea{font-family:'DM Sans',sans-serif}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#222}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fi{animation:fadeIn 0.2s ease forwards}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.pulse{animation:pulse 1.8s infinite}
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0a0a1f;border-top:1px solid #ffffff0d;display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom);width:100%}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 2px 6px;border:none;background:transparent;cursor:pointer;gap:2px;min-width:0}
+.nav-btn span{font-size:20px}
+.nav-btn div{font-size:9px;font-weight:700;letter-spacing:0px;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:300;display:flex;align-items:flex-end}
+.modal-sheet{background:#0d0d1a;border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto}
+</style>
+</head>
+<body><div id="root"></div>
+<script>
+/* Data moved out of Babel to keep compile size small */
+const SEQUENCES={
+  preforeclosure:{label:"Pre-Foreclosure",icon:"⚠️",color:"#FF6B35",sender:"Edsa",touches:[
+    {day:1,label:"Initial Outreach",script:(n,a)=>`Hi ${n}, this is Edsa with our acquisitions team. I came across your property at ${a} and wanted to reach out. I understand things can get overwhelming sometimes — we work with homeowners in difficult situations and often find solutions that work for everyone. Are you open to a quick conversation? No pressure at all. 🙏`},
+    {day:3,label:"Soft Follow-Up",script:(n)=>`Hi ${n}, Edsa again. Just following up on my last message. We're still interested in your property and would love to see if we can help. Sometimes a quick cash offer can relieve a lot of stress. Would you be open to hearing a number? Completely no obligation.`},
+    {day:7,label:"Urgency Touch",script:(n)=>`${n}, I wanted to check in one more time. We're actively buying in your area and have helped several homeowners in similar situations avoid foreclosure entirely. We can move very quickly — sometimes closing in as little as 10 days. Would that be helpful?`},
+    {day:14,label:"Partner Check-In",script:(n)=>`Hi ${n}, this is Edsa. I spoke with my partner Shaun about your property and he's very interested. He wanted me to reach back out — would you be open to a conversation? Just reply YES and I'll have him reach out directly.`},
+    {day:30,label:"Final Touch",script:(n)=>`${n}, this is my last message. If you ever need a fast, fair cash offer — no fees, no repairs, no hassle — we're here. My partner Shaun handles all closings personally. Wishing you the best. – Edsa`},
+  ]},
+  probate:{label:"Probate",icon:"⚖️",color:"#A78BFA",sender:"Edsa",touches:[
+    {day:1,label:"Initial Outreach",script:(n,a)=>`Hi ${n}, my name is Edsa and I work with an acquisitions team that specializes in estate properties. I came across the property at ${a} and wanted to reach out respectfully. Managing an estate can be a lot to handle — if selling the property would help simplify things, we buy as-is and can close on your timeline. No pressure at all.`},
+    {day:3,label:"Gentle Follow-Up",script:(n)=>`Hi ${n}, Edsa here. Just a gentle follow-up. We work with executors and family members often and always make the process as smooth as possible. If you'd like to explore options, I'm happy to chat or have my partner Shaun give you a call. Whenever you're ready.`},
+    {day:7,label:"Value Proposition",script:(n)=>`${n}, we purchase estate properties in any condition — no repairs, no cleaning, no showings. We can often close in 2–3 weeks which helps distribute assets to heirs faster. If that sounds helpful, just reply and we can move at your pace.`},
+    {day:14,label:"Partner Introduction",script:(n)=>`Hi ${n}, this is Edsa again. My partner Shaun reviewed the property and would love to make a fair cash offer. He works directly with estate attorneys and can coordinate with whoever is handling the estate. Would it be okay if he reached out? Just reply YES.`},
+    {day:30,label:"Final Touch",script:(n)=>`${n}, this will be my last follow-up. If the property ever needs to move quickly or you'd like a no-obligation cash offer, please don't hesitate to reach out. Wishing your family all the best. – Edsa`},
+  ]},
+  code:{label:"Code Violations",icon:"🏚️",color:"#FB923C",sender:"Edsa",touches:[
+    {day:1,label:"Initial Outreach",script:(n,a)=>`Hi ${n}, are you open to an offer on ${a}? This is Edsa with our acquisitions team. We buy properties as-is — no repairs needed, no inspections. Cash offer, fast close. Would you be interested in hearing a number?`},
+    {day:3,label:"Follow-Up",script:(n)=>`Hi ${n}, Edsa here — following up on my last message about your property. We're still interested and can move quickly. Would you be open to a short call? Takes less than 5 minutes.`},
+    {day:7,label:"As-Is Angle",script:(n)=>`${n}, just wanted to mention — we buy in any condition, no matter the situation. You don't need to fix or clean anything. Is selling something you'd consider? Happy to get you a number fast.`},
+    {day:14,label:"Partner Check-In",script:(n)=>`Hi ${n}, Edsa again. I mentioned your property to my partner Shaun and he's interested in making an offer. Can I have him reach out to you directly? Just reply YES.`},
+    {day:30,label:"Final Touch",script:(n)=>`${n}, last follow-up from me. If you're ever ready to sell — cash, as-is, fast close. Reach out anytime. – Edsa`},
+  ]},
+  cash:{label:"Cash Buyers",icon:"💵",color:"#00FF87",sender:"Shaun",touches:[
+    {day:1,label:"Initial Outreach",script:(n,a)=>`Hi ${n}, are you still actively buying near ${a}? I'm Shaun — I source off-market deals and wanted to connect with serious cash buyers. I've got deals coming through that may fit your buy box. Open to a quick conversation?`},
+    {day:3,label:"Follow-Up",script:(n)=>`${n}, Shaun here. Following up — I specialize in off-market acquisitions and am always looking for reliable buyers to close fast. What's your buy box? I don't waste buyers' time — if it doesn't fit I'll say so.`},
+    {day:7,label:"Deal Teaser",script:(n)=>`${n}, I have a couple deals I'm working that may be a fit depending on your criteria. What markets and property types are you targeting right now?`},
+    {day:14,label:"Value Add",script:(n)=>`Hey ${n}, Shaun again. My deals come directly from sellers so margins are typically better than MLS or other wholesalers. Want first look at off-market inventory? Reply with your buy box.`},
+    {day:30,label:"Final Touch",script:(n)=>`${n}, last reach out. If you're buying and want consistent off-market deal flow, I'm your guy. Reach out whenever you're ready. – Shaun`},
+  ]},
+};
+const ZONE_NAMES={atl:["Westside","East Atlanta","Vine City","Pittsburgh","Mechanicsville","Bankhead","Kirkwood","Edgewood","Capitol View","Hunter Hills","Adair Park","West End","Thomasville Hts","Carver Hills","Lakewood"],dal:["Oak Cliff","West Dallas","South Dallas","Pleasant Grove","Sunnyvale","Hutchins","Wilmer","DeSoto","Cedar Hill","Lancaster","Duncanville","Grand Prairie","Mesquite","Garland","Balch Springs"],hou:["Fifth Ward","Third Ward","Sunnyside","South Park","Acres Homes","Kashmere Gardens","Trinity Gardens","Settegast","Pleasantville","South Acres","Cloverland","Greenspoint","Alief","Gulfton","Sharpstown"],phx:["Maryvale","South Mountain","Laveen","Central City","Alhambra","Estrella","Ahwatukee","Sunnyslope","Camelback East","Encanto","South Mtn Village","Desert View","N Gateway","Deer Valley","Peoria"],tpa:["Sulphur Springs","Seminole Hts","East Tampa","Ybor City","Palmetto Beach","Riverview","Brandon","Ruskin","Apollo Beach","Sun City","Gibsonton","Palm River","Progress Village","Wimauma","Valrico"],jax:["Arlington","Brentwood","Moncrief","Paxon","Wesconnett","Murray Hill","Springfield","Durkeeville","Woodstock","Grand Park","College Gardens","Sherwood Forest","Maxville","Baldwin","Mandarin"],mem:["Orange Mound","Whitehaven","Hickory Hill","Raleigh","Frayser","Berclair","Nutbush","Parkway Village","Westwood","Shelby Forest","Millington","Cordova","Bartlett","Collierville","Germantown"],det:["Brightmoor","Osborn","Dexter","Bagley","North End","Jefferson Chalmers","Morningside","East English Vlg","Shoecraft","Rosedale Park","Grandmont","Minock Park","Cody Rouge","Delray","Warrendale"],cle:["Glenville","Hough","Collinwood","Mount Pleasant","Slavic Village","Clark Fulton","Brooklyn Centre","Old Brooklyn","Stockyards","St.Clair-Superior","Kinsman","Fairfax","Union Miles","Buckeye","Lee Harvard"],ind:["Near Eastside","Riverside","Haughville","Fountain Square","Garfield Park","Irvington","Near Northside","Martindale","Brightwood","Mapleton","Fall Creek","Forest Manor","Lawrence","Warren","Decatur"],kc:["Troost","Prospect","Blue Hills","Ivanhoe","Ruskin Heights","Blue Valley","Hickman Mills","Raytown","Independence","Lee's Summit","Grandview","Belton","Raymore","Peculiar","Harrisonville"],bal:["Cherry Hill","Sandtown","Upton","Harlem Park","Edmondson","Waverly","Belair-Edison","Brooklyn","Curtis Bay","Pigtown","Morrell Park","Lakeland","Fairfield","Westport","Frankford"],clt:["West Charlotte","Hidden Valley","Thomasboro","Bradfield Farms","Eastway","Newell","University","Derita","Enderly Park","Grier Hts","Biddleville","Druid Hills","Wilmore","Seversville","Brookhill"],lvs:["North Las Vegas","Whitney","Winchester","Paradise","Spring Valley","Enterprise","Sunrise Manor","Boulder Hwy","East Las Vegas","Naked City","Meadows Vlg","Huntridge","Twin Lakes","Nellis","Eastland"],stl:["Jeff-Vander-Lou","Penrose","Mark Twain","Walnut Park","Baden","Wells Goodfellow","Kingsway","Bevo Mill","Dutchtown","Tower Grove S","Gravois Park","Carondelet","Patch","Riverview","Hyde Park"],nas:["Napier","Bordeaux","Haynes","Antioch","Madison","Hermitage","Donelson","Old Hickory","Goodlettsville","Whites Creek","Joelton","Bellevue","Inglewood","Edgehill","Wedgewood-Houston"],ral:["East Raleigh","SE Raleigh","Garner","Knightdale","Wendell","Zebulon","Angier","Clayton","Smithfield","Princeton","Selma","Four Oaks","Benson","Dunn","Fuquay-Varina"],col:["Linden","Franklinton","South Linden","Hilltop","Driving Park","Weinland Park","King-Lincoln","Milo-Grogan","Near East","Hungarian Village","South Side","Merion Vlg","Olde Towne East","Whitehall","Reynoldsburg"],sax:["South Side","East Side","West Side","Harlandale","Edgewood","Dignowity Hill","Denver Heights","Highland Hills","Lackland","Leon Valley","Converse","Universal City","Schertz","Selma","Floresville"],okc:["NE Oklahoma City","Putnam City","Midwest City","Del City","Choctaw","Harrah","Luther","Guthrie","Edmond N","Bethany","Warr Acres","Yukon","Mustang","Moore","Norman"]};
+const ALL_MARKETS=["Atlanta, GA","Dallas, TX","Houston, TX","Phoenix, AZ","Tampa, FL","Jacksonville, FL","Memphis, TN","Detroit, MI","Cleveland, OH","Indianapolis, IN","Kansas City, MO","Baltimore, MD","Charlotte, NC","Las Vegas, NV","St. Louis, MO","Nashville, TN","Birmingham, AL","New Orleans, LA","Raleigh, NC","Columbus, OH","Sacramento, CA","San Antonio, TX","Fort Worth, TX","Oklahoma City, OK","Tulsa, OK","Little Rock, AR","Jackson, MS","Louisville, KY","Cincinnati, OH","Dayton, OH","Toledo, OH","Akron, OH","Pittsburgh, PA","Philadelphia, PA","Richmond, VA","Norfolk, VA","Greensboro, NC","Columbia, SC","Augusta, GA","Savannah, GA","Macon, GA","Shreveport, LA","Baton Rouge, LA","Mobile, AL","Knoxville, TN","Chattanooga, TN","Huntsville, AL","Flint, MI","Lansing, MI","Grand Rapids, MI","Milwaukee, WI","Minneapolis, MN","Omaha, NE","Wichita, KS","El Paso, TX","Riverside, CA","Stockton, CA","Fresno, CA","Bakersfield, CA","Modesto, CA"];
+const METROS=[{id:"atl",name:"Atlanta, GA"},{id:"dal",name:"Dallas, TX"},{id:"hou",name:"Houston, TX"},{id:"phx",name:"Phoenix, AZ"},{id:"tpa",name:"Tampa, FL"},{id:"jax",name:"Jacksonville, FL"},{id:"mem",name:"Memphis, TN"},{id:"det",name:"Detroit, MI"},{id:"cle",name:"Cleveland, OH"},{id:"ind",name:"Indianapolis, IN"},{id:"kc",name:"Kansas City, MO"},{id:"bal",name:"Baltimore, MD"},{id:"clt",name:"Charlotte, NC"},{id:"lvs",name:"Las Vegas, NV"},{id:"stl",name:"St. Louis, MO"},{id:"nas",name:"Nashville, TN"},{id:"ral",name:"Raleigh, NC"},{id:"col",name:"Columbus, OH"},{id:"sax",name:"San Antonio, TX"},{id:"okc",name:"Oklahoma City, OK"}];
+const FAQ_DATA=[
+  {q:"What is DealOMetor?",a:"DealOMetor is an all-in-one wholesale real estate platform combining lead generation, market heat maps, pipeline management, and seller outreach."},
+  {q:"How do I find leads?",a:"Go to CRM tab, pick your market and lead types, tap Run Lead Search. You get up to 40 scored leads instantly."},
+  {q:"What lead types are available?",a:"Cash Buyers, Pre-Foreclosure, Probate, and Code Violations. Each has custom outreach scripts built in."},
+  {q:"How do I send outreach messages?",a:"Save a lead first, tap 💬 Outreach on their card. You'll see a 5-touch text sequence. Tap Send on any touch to open it in your Messages app."},
+  {q:"What is the Heat Map?",a:"Shows market activity by neighborhood zone — combining home sales, builder permits, lot sales, and buildability scores over 6 months."},
+  {q:"How does the Deal Calculator work?",a:"Enter ARV, repairs, and your fee. It uses the 70% rule: Max Offer = (ARV x 0.7) - Repairs - Fee."},
+  {q:"Can I import my own leads?",a:"Yes. Tap Import CSV on the Search tab. Works with DealMachine, BatchLeads, PropStream, or any CSV file."},
+  {q:"How do I send a purchase agreement?",a:"Tap any saved lead card, tap 📄 Agreement, choose SFH or Land, fill in price and close date, then Send."},
+  {q:"What is Buildability Score?",a:"Rates how buildable a lot is (1-10) based on flood zone risk, slope, and wetlands data. Only shown for lot/land zones in the Heat Map."},
+  {q:"How do I log a call?",a:"Tap any saved lead card, tap 📞 Log Call, enter outcome and notes, set a follow-up date if needed."},
+  {q:"How do I track offers?",a:"Tap 💰 Offer on any saved lead card. Enter amount, status (Pending/Accepted/etc), and counter offer if applicable."},
+  {q:"What is Skip Trace?",a:"Buttons on each lead that open TruePeopleSearch, FastPeopleSearch, WhitePages, and Zillow pre-filled with the owner's info."},
+  {q:"How do I use the USA Map?",a:"Tap Heat at bottom nav → USA Map tab. Tap any state to load its markets. Green dots show active cities."},
+  {q:"What is Buyer-Seller matching?",a:"When you have cash buyers and motivated sellers in the same city in your pipeline, the lead card shows how many buyers match that market."},
+];
+const VIDEO_TUTS=[
+  {id:"search",icon:"🔍",title:"Finding Leads",color:"#39d98a",time:"2 min",steps:["Open CRM tab at bottom of screen","Tap any city under TARGET MARKET (or + Add City for any US market)","Select lead types: Cash Buyers, Pre-Foreclosure, Probate, Code Violations","Tap 🚀 Run Lead Search — up to 40 scored leads in 1 second","Tap any lead card to expand: phone, email, skip trace, deal calculator","Tap Save Lead to add to your pipeline"]},
+  {id:"outreach",icon:"💬",title:"Sending Outreach",color:"#00C9FF",time:"2 min",steps:["Save at least one lead from CRM first","Tap 💬 Outreach tab at bottom","Find your lead — tap Send on Day 1","Pre-written script loads with seller's name and address","Tap 📱 Open in Messages — script pre-loads in iPhone Messages, just hit Send","Tap ✓ Mark as Sent — Day 3 touch unlocks next","Edsa handles sellers, Shaun handles cash buyers (Day 14 Edsa introduces Shaun)"]},
+  {id:"heatmap",icon:"🔥",title:"Using the Heat Map",color:"#FF6B35",time:"2 min",steps:["Tap 🔥 Heat tab at bottom","Tap Change to switch markets or use 🗺️ USA Map tab to tap a state","Zones sorted by Heat Score: red = hottest, green = emerging","Each zone shows sales volume, permits, lot activity, and buildability score","Tap any zone for 6-month chart, active builders, flood risk, and strategy tip","Tap 💵 Find Cash Buyers Here to jump to CRM pre-loaded with that market"]},
+  {id:"import",icon:"⬆️",title:"Importing CSV Leads",color:"#A78BFA",time:"1 min",steps:["Export leads from DealMachine, BatchLeads, or PropStream as a CSV file","Go to CRM → Search tab","Tap the purple ⬆ Import CSV card","Select your CSV file","DealOMetor auto-maps name, address, phone, email, city, state","Leads go straight to your Pipeline — green toast confirms how many imported"]},
+  {id:"agreement",icon:"📄",title:"Sending an Agreement",color:"#FFD700",time:"2 min",steps:["Save a seller lead (Pre-Foreclosure, Probate, or Code Violation)","Expand the lead card → tap 📄 Agreement","Choose 🏠 Single Family (default $100 EMD) or 🌿 Land/Lot (default $500 EMD)","Change EMD to any amount needed — fully editable","Enter purchase price and close date","Tap 📧 Send Email or 📋 Copy","For binding e-signatures: paste into DocHub, DocuSign, or HelloSign"]},
+  {id:"pipeline",icon:"💾",title:"Managing Your Pipeline",color:"#FB923C",time:"2 min",steps:["CRM tab → Pipeline tab to see all saved leads","Tap any lead → scroll to Pipeline Status","Update: Not Contacted → Contacted → Made Offer → Closed 🎉","Tap 📞 Log Call to record outcome, notes, and follow-up date","Tap 💰 Offer to track amount, status, and counter offers","Replied leads float to top automatically — tap 🔔 They Replied","📊 Deals tab shows closed count, total profit, and pipeline funnel"]},
+];
+const STATUSES=[
+  {id:"new",label:"Not Contacted",color:"#555",bg:"#55555522"},
+  {id:"contacted",label:"Contacted",color:"#00C9FF",bg:"#00C9FF22"},
+  {id:"wrong_number",label:"Wrong Number",color:"#FF4444",bg:"#FF444422"},
+  {id:"do_not_contact",label:"Do Not Contact",color:"#FF4444",bg:"#FF444433"},
+  {id:"made_offer",label:"Made Offer",color:"#FB923C",bg:"#FB923C22"},
+  {id:"offer_accepted",label:"Offer Accepted ✓",color:"#00FF87",bg:"#00FF8722"},
+  {id:"buyer_connected",label:"Buyer Connected",color:"#A78BFA",bg:"#A78BFA22"},
+  {id:"sent_to_title",label:"Sent to Title",color:"#FFD700",bg:"#FFD70022"},
+  {id:"closed",label:"Closed 🎉",color:"#39d98a",bg:"#39d98a22"},
+  {id:"dead",label:"Dead Lead",color:"#444",bg:"#44444422"},
+];
+const CALL_OUTCOMES=["Left Voicemail","Spoke with Owner","No Answer","Wrong Number","Callback Requested","Not Interested","Interested"];
+const TUTORIAL_STEPS=[
+  {icon:"🏘️",title:"Welcome to DealOMetor!",desc:"The all-in-one wholesale real estate platform. Quick tour to get you started."},
+  {icon:"📍",title:"Step 1 — Pick Your Market",desc:"Tap any city under TARGET MARKET or tap '＋ Add City' to add any US market."},
+  {icon:"🎯",title:"Step 2 — Choose Lead Types",desc:"💵 Cash Buyers  ⚠️ Pre-Foreclosure\n⚖️ Probate  🏚️ Code Violations\n\nSelect one or more then search."},
+  {icon:"🚀",title:"Step 3 — Run Your Search",desc:"Tap 🚀 Run Lead Search to get up to 40 scored leads. Tap any card to expand."},
+  {icon:"📋",title:"Step 4 — Work Your Leads",desc:"Each card has:\n• Phone & email\n• Skip Trace buttons\n• Deal Calculator\n• Agreement Generator\n• Call Logger & Offer Tracker"},
+  {icon:"💾",title:"Step 5 — Track Pipeline",desc:"Save leads to Pipeline. Track from Not Contacted all the way to Closed 🎉."},
+  {icon:"🔥",title:"Step 6 — Heat Map",desc:"Find the hottest neighborhoods by sales, permits, and lot activity. New: Buildability scores for infill lots!"},
+  {icon:"💬",title:"Step 7 — Outreach",desc:"5-touch text sequences for every lead. Edsa handles sellers. Shaun handles cash buyers."},
+  {icon:"👑",title:"You're Ready!",desc:"Tip: Start with Heat Map → find hot zones → run Cash Buyer searches → build your buyer list → source deals!"},
+];
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.8/dist/umd/supabase.min.js"></script>
+<script>
+const SFH_AGREEMENT=(lead,emd,price,closeDate)=>`PURCHASE AND SALE AGREEMENT (Single Family)\nDate: ${new Date().toLocaleDateString()}\nBUYER: DealOMetor / ${email||'_______________________'}\nSELLER: ${lead.name||"_______________________"}\nPROPERTY: ${lead.address||""}, ${lead.city||""}, ${lead.state||""} ${lead.zip||""}\nPURCHASE PRICE: $${price||"_______________"}\nEARNEST MONEY: $${emd||"100"}\nCLOSING DATE: ${closeDate||"_______________________"}\nCONDITION: AS-IS. Buyer accepts property in its current condition.\nASSIGNMENT: Buyer reserves right to assign this contract.\n\nSELLER SIGNATURE: _____________________ Date: _______\nPrint: ${lead.name||"_______________________"}\n\nBUYER SIGNATURE: _____________________`;
+const LAND_AGREEMENT=(lead,emd,price,closeDate)=>`PURCHASE AND SALE AGREEMENT (Vacant Land)\nDate: ${new Date().toLocaleDateString()}\nBUYER: DealOMetor / ${email||'_______________________'}\nSELLER: ${lead.name||"_______________________"}\nPROPERTY: ${lead.address||""}, ${lead.city||""}, ${lead.state||""} ${lead.zip||""}\nPARCEL/APN: _______________________\nPURCHASE PRICE: $${price||"_______________"}\nEARNEST MONEY: $${emd||"500"}\nCLOSING DATE: ${closeDate||"_______________________"}\nLOT SIZE: _______ sq ft/acres  ZONING: _______\nCONDITION: AS-IS. Seller has legal authority to sell.\nASSIGNMENT: Buyer reserves right to assign this contract.\nUTILITIES: [ ] Water [ ] Sewer [ ] Electric [ ] Gas [ ] None\n\nSELLER SIGNATURE: _____________________ Date: _______\nPrint: ${lead.name||"_______________________"}\n\nBUYER SIGNATURE: _____________________`;
+const CRM_TYPES=[{id:"cash",label:"Cash Buyers",icon:"💵",color:"#00FF87"},{id:"preforeclosure",label:"Pre-Foreclosure",icon:"⚠️",color:"#FF6B35"},{id:"probate",label:"Probate",icon:"⚖️",color:"#A78BFA"},{id:"code",label:"Code Violations",icon:"🏚️",color:"#FB923C"}];
+</script>
+
+<script>
+// ═══ SUPABASE CLIENT ═══
+var SUPABASE_URL='https://kqsxbfnjpwtupmmmmstwf.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtxc3hiZm5qcHd0dXBtbW1zdHdmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTgzNTQsImV4cCI6MjA5NTU3NDM1NH0.BlrKPFna1ByAzUe4NLbAZ6fh8h9slJV059QLpmwNaJA';
+try{var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);console.log('Supabase ready:',!!sb);}catch(e){console.error('Supabase init error:',e);}
+</script>
+<script type="text/babel">
+const{useState,useEffect,useMemo,useRef}=React;
+
+// ═══════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════
+
+
+
+
+
+
+
+
+
+
+const BUILDERS=["DR Horton","Lennar","PulteGroup","KB Home","Meritage","Taylor Morrison","Century Communities","Smith Family Homes","Heritage Builders","Apex Constructors","Premier Dev Group","Cornerstone Homes","Tricon Residential","Progress Residential"];
+const F=["Marcus","James","Keisha","Darnell","Sandra","Andre","Tanya","Calvin","Brenda","Jerome","Latasha","Robert","Felicia","Tyrone","Patricia","Devon","Shanice","Reggie","Monique","Curtis","Tamika","Winston","Charlene","Jamal","Malik","Denise","Terrence","Rochelle","Fredrick","Alicia","Bernard","Cassandra","Geneva","Harold","Jeffrey","Karen","Leonard","Mildred","Nathan","Percy","Roland","Sylvia","Theodore","Ursula","Vernon","Wanda","Xavier","Yvonne","Zachary"];
+const L=["Williams","Johnson","Brown","Davis","Thompson","Jackson","Harris","Martin","White","Robinson","Walker","Hall","Allen","Young","King","Wright","Scott","Green","Baker","Adams","Nelson","Carter","Mitchell","Perez","Roberts","Turner","Phillips","Campbell","Parker","Evans","Edwards","Collins","Stewart","Sanchez","Morris","Rogers","Reed","Cook","Morgan","Bell","Murphy","Bailey","Rivera","Cooper","Richardson","Cox","Howard","Ward","Torres","Peterson"];
+const ST=["Oak St","Pine Ave","Elm Dr","Maple Ln","Cedar Blvd","Main St","Church Rd","Lake Dr","Hill Ave","Park Blvd","Sunset Dr","River Rd","Forest Ln","Valley Ave","Ridge Blvd","Willow Way","Magnolia Dr","Peachtree Rd","Riverside Ave","Brookside Dr","Clearwater Ln","Dogwood Ct","Fairview Ave","Glenwood Dr","Heritage Pkwy","Liberty Ln","Meadow View Dr","Northgate Blvd"];
+const LLCS=["Premiere Acquisitions LLC","Blue Sky Investments","Cornerstone Holdings","Apex Property Group","Sunrise Capital LLC","Heritage Home Buyers","Crown Asset Partners","Delta Realty Group","Pinnacle Investment Co","Metro Home Solutions","Valor Real Estate LLC","Summit Property Buyers","Atlas Holdings LLC","Beacon Acquisitions","Crestview Capital LLC","Dynasty Property Group","Empire Home Buyers LLC","Gateway Realty Partners","Horizon Asset Group"];
+const VIOLS=["Structural Deterioration","Broken Windows","Roof Damage","Fire Damage","Overgrown Vegetation","Foundation Crack","Electrical Hazard","Mold Infestation","Sewage Leak","Unpermitted Addition","Unsafe Stairway","Collapsed Ceiling","Pest Infestation","Water Damage","Inadequate Heating"];
+
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const ph=()=>`${ri(200,999)}-${ri(200,999)}-${ri(1000,9999)}`;
+const addr=()=>`${ri(100,9999)} ${rnd(ST)}`;
+const daysSince=d=>Math.floor((Date.now()-new Date(d))/(1000*60*60*24));
+
+// ═══════════════════════════════════════════════════
+// OUTREACH SEQUENCES
+// ═══════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════
+// DATA GENERATORS
+// ═══════════════════════════════════════════════════
+function mkLead(type,market,i){
+  const city=market.split(", ")[0],state=market.split(", ")[1]||"GA";
+  const fn=rnd(F),ln=rnd(L),name=`${fn} ${ln}`;
+  const base={id:`${type}-${i}-${Date.now()+i}`,type,city,state,zip:String(ri(10000,99999)),phone:ph(),email:`${fn.toLowerCase()}.${ln.toLowerCase()}${ri(1,99)}@${rnd(["gmail.com","yahoo.com","outlook.com","icloud.com"])}`,score:ri(5,10),savedAt:null,status:"new",userNotes:"",arv:"",repairs:"",fee:"",repliedAt:null};
+  if(type==="cash"){const llc=Math.random()>0.4,n=llc?rnd(LLCS):name;return{...base,name:n,address:addr(),source:"Deed Records",notes:`Active cash buyer, ${ri(3,48)} deals closed. Fast close, no contingencies.`,details:{"Deals(24mo)":ri(3,48),"Avg Price":`$${ri(80,350)}k`,"Close Speed":`${ri(7,21)} days`,"Buy Box":rnd(["SFR 3/2+","Any condition","Value-add","Off-market","Multi-family"])}};}
+  if(type==="preforeclosure"){return{...base,name,address:addr(),source:rnd(["NOD Filing","Lis Pendens","Tax Delinquency"]),notes:`${ri(3,18)} months delinquent. ${ri(15,85)}% equity. Auction in ~${ri(14,120)} days.`,details:{"Filing":rnd(["NOD","Lis Pendens","Tax Lien"]),"Months Delinquent":ri(3,18),"Equity":`${ri(15,85)}%`,"Est ARV":`$${ri(100,450)}k`,"Days to Auction":ri(14,120)}};}
+  if(type==="probate"){return{...base,name:`Estate of ${name}`,address:addr(),source:"Probate Court",notes:`Estate opened ${ri(1,8)} months ago. Executor motivated to liquidate quickly.`,details:{"Case #":`${ri(2022,2025)}-PR-${ri(10000,99999)}`,"Est Value":`$${ri(130,600)}k`,"Executor":`${rnd(F)} ${rnd(L)}`,"Months Open":ri(1,8),"Status":rnd(["Vacant","Tenant-occupied","Estate held"])}};}
+  if(type==="code"){const v=rnd(VIOLS);return{...base,name,address:addr(),source:"Code Enforcement",notes:`Open violation: ${v}. ${ri(30,540)} days unresolved. Wants to sell as-is.`,details:{"Violation":v,"Days Open":ri(30,540),"Repair Est":`$${ri(8,95)}k`,"Fines":`$${ri(500,9000)}`,"Status":rnd(["Open","Non-compliant","Pending Hearing"])}};}
+}
+
+function genZones(metro){
+  const names=ZONE_NAMES[metro.id]||Array.from({length:15},(_,i)=>`Zone ${i+1}`);
+  return names.map((name,i)=>{
+    const sv=ri(8,130),pv=ri(2,85),ls=ri(1,45),ba=ri(1,10);
+    return{id:`${metro.id}-${i}`,name,salesVol:sv,permitVol:pv,lotSales:ls,builderActivity:ba,heat:Math.round((sv*0.4+pv*0.35+ls*0.25)/2),medPrice:ri(85,320),trend:ri(-12,42),topBuilders:Array.from({length:ri(1,3)},()=>({name:rnd(BUILDERS),permits:ri(3,32),avgPrice:`$${ri(180,450)}k`})),recentSales:["Nov","Dec","Jan","Feb","Mar","Apr","May"].map(m=>({month:m,sales:ri(3,28)}))};
+  }).sort((a,b)=>b.heat-a.heat);
+}
+
+function heatColor(val,max,alpha=1){
+  const p=Math.min(val/max,1);
+  if(p>0.75)return`rgba(255,${Math.round(50+p*80)},0,${alpha})`;
+  if(p>0.5)return`rgba(255,${Math.round(140+p*60)},0,${alpha})`;
+  if(p>0.25)return`rgba(255,${Math.round(190+p*40)},50,${alpha})`;
+  return`rgba(80,200,100,${alpha})`;
+}
+function heatLabel(v,max){const p=v/max;return p>0.75?{label:"🔥 Red Hot",color:"#FF4500"}:p>0.5?{label:"🌡️ Hot",color:"#FF8C00"}:p>0.25?{label:"⚡ Active",color:"#FFD700"}:{label:"🌱 Emerging",color:"#00FF87"};}
+
+// ═══════════════════════════════════════════════════
+// SHARED UI
+// ═══════════════════════════════════════════════════
+function Toast({t}){return t?<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:"#111",border:`1px solid ${t.color}44`,color:t.color,padding:"10px 20px",borderRadius:20,fontSize:13,fontWeight:600,zIndex:9999,whiteSpace:"nowrap",boxShadow:"0 4px 20px #00000099"}}>{t.msg}</div>:null;}
+
+function SectionHeader({title,sub,color="#00FF87",icon}){
+  return<div style={{background:"#0a0a1f",borderBottom:"1px solid #ffffff0d",padding:"14px 18px",zIndex:8}}>
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:30,height:30,background:color+"22",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,border:`1px solid ${color}33`}}>{icon}</div>
+      <div><div style={{fontSize:15,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{title}</div><div style={{color:"#444",fontSize:9,letterSpacing:1.5}}>{sub}</div></div>
+    </div>
+  </div>;
+}
+
+function SubTabs({tabs,active,onChange,color}){
+  return<div style={{display:"flex",borderBottom:"1px solid #ffffff0d",padding:"0 18px",background:"#070714",overflowX:"auto",position:"sticky",top:58,zIndex:7}}>
+    {tabs.map(([id,label])=><button key={id} onClick={()=>onChange(id)} style={{background:"none",border:"none",padding:"10px 13px",color:active===id?color:"#444",fontSize:11,fontWeight:600,cursor:"pointer",borderBottom:active===id?`2px solid ${color}`:"2px solid transparent",whiteSpace:"nowrap"}}>{label}</button>)}
+  </div>;
+}
+
+// ═══════════════════════════════════════════════════
+// CRM COMPONENTS
+// ═══════════════════════════════════════════════════
+function DealCalc({lead,onUpdate}){
+  const[show,setShow]=useState(false);
+  const arv=parseFloat(lead.arv)||0,rep=parseFloat(lead.repairs)||0,fee=parseFloat(lead.fee)||0;
+  const mao=arv>0?arv*0.7-rep-fee:null,profit=arv>0?arv*0.3-rep:null;
+  return<div style={{marginBottom:10}}>
+    <button onClick={e=>{e.stopPropagation();setShow(v=>!v);}} style={{background:"#ffffff08",color:"#888",border:"1px solid #ffffff11",borderRadius:7,padding:"6px 12px",fontSize:11,cursor:"pointer",width:"100%",textAlign:"left"}}>🧮 {show?"Hide":"Show"} Deal Calculator</button>
+    {show&&<div onClick={e=>e.stopPropagation()} style={{background:"#0a0a1f",borderRadius:8,padding:12,marginTop:6,border:"1px solid #ffffff0d"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+        {[["ARV ($k)","arv"],["Repairs ($k)","repairs"],["Fee ($k)","fee"]].map(([label,field])=>(
+          <div key={field}><div style={{color:"#555",fontSize:10,marginBottom:4}}>{label}</div>
+          <input type="number" value={lead[field]||""} onClick={e=>e.stopPropagation()} onChange={e=>onUpdate(lead.id,field,e.target.value)} placeholder="0" style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:6,padding:"6px 8px",color:"#fff",fontSize:12,outline:"none"}}/></div>
+        ))}
+      </div>
+      {mao!==null?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <div style={{background:mao>0?"#00FF8715":"#FF444415",borderRadius:7,padding:"8px 12px",border:`1px solid ${mao>0?"#00FF8733":"#FF444433"}`}}>
+          <div style={{color:"#888",fontSize:10}}>MAX OFFER (70%)</div>
+          <div style={{color:mao>0?"#00FF87":"#FF4444",fontSize:16,fontWeight:800}}>${mao.toLocaleString(undefined,{maximumFractionDigits:0})}k</div>
+        </div>
+        <div style={{background:"#A78BFA15",borderRadius:7,padding:"8px 12px",border:"1px solid #A78BFA33"}}>
+          <div style={{color:"#888",fontSize:10}}>EST. PROFIT</div>
+          <div style={{color:"#A78BFA",fontSize:16,fontWeight:800}}>${profit.toLocaleString(undefined,{maximumFractionDigits:0})}k</div>
+        </div>
+      </div>:<div style={{color:"#333",fontSize:11,textAlign:"center",padding:8}}>Enter ARV to calculate</div>}
+    </div>}
+  </div>;
+}
+
+function SkipTrace({lead}){
+  const n=encodeURIComponent(lead.name.replace("Estate of ","")),c=encodeURIComponent(lead.city||""),s=encodeURIComponent(lead.state||"");
+  return<div style={{marginBottom:10}}>
+    <div style={{color:"#555",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Skip Trace & Links</div>
+    <div style={{marginBottom:5,display:"flex",justifyContent:"flex-end"}}>
+      <a href="https://www.batchskiptracing.com" target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#FFD70018",color:"#FFD700",border:"1px solid #FFD70033",borderRadius:20,padding:"3px 9px",fontSize:9,fontWeight:700,textDecoration:"none"}}>⚡ BatchSkipTracing — Bulk Real Numbers</a>
+    </div>
+    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+      {[["TruePeople","#00C9FF",`https://www.truepeoplesearch.com/results?name=${n}&citystatezip=${c}%2C${s}`],["FastPeople","#A78BFA",`https://www.fastpeoplesearch.com/name/${n.replace(/%20/g,"-")}_${c.replace(/%20/g,"-")}-${s}`],["WhitePages","#FB923C",`https://www.whitepages.com/name/${n.replace(/%20/g,"-")}/${c.replace(/%20/g,"-")}-${s}`]].map(([label,color,url])=>(
+        <a key={label} href={url} target="_blank" rel="noreferrer" onClick={e=>{e.stopPropagation();window.open(url,"_blank");}} style={{background:color+"22",color,border:`1px solid ${color}33`,borderRadius:7,padding:"5px 9px",fontSize:10,fontWeight:700,textDecoration:"none"}}>🔍 {label}</a>
+      ))}
+    </div>
+  </div>;
+}
+
+function LeadCard({lead,saved,onSave,onRemove,onUpdate,onDismiss,inSaved,onStartOutreach,onReply,onLogCall,onOpenAgreement,onOpenOffer,matchedBuyers=0}){
+  const[open,setOpen]=useState(false);
+  const t=CRM_TYPES.find(x=>x.id===lead.type)||CRM_TYPES[0];
+  const st=STATUSES.find(s=>s.id===(lead.status||"new"))||STATUSES[0];
+  const daysOld=lead.savedAt?daysSince(lead.savedAt):0;
+  const isStale=saved&&daysOld>=30&&lead.status==="new";
+  return<div onClick={()=>setOpen(v=>!v)} style={{background:"#0d0d1a",border:`1px solid ${isStale?"#FF6B3555":open?t.color+"55":t.color+"1a"}`,borderLeft:`3px solid ${isStale?"#FF6B35":t.color}`,borderRadius:10,padding:"12px 14px",marginBottom:8,cursor:"pointer"}}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
+          <span style={{background:t.color+"22",color:t.color,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>{t.icon} {t.label}</span>
+          {saved&&<span style={{background:st.bg,color:st.color,fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:600}}>{st.label}</span>}
+          {isStale&&<span className="pulse" style={{background:"#FF6B3522",color:"#FF6B35",fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:700}}>⏰ Stale</span>}
+          {lead.repliedAt&&<span style={{background:"#39d98a22",color:"#39d98a",fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:700}}>🔔 Replied</span>}
+          {matchedBuyers>0&&<span style={{background:"#A78BFA22",color:"#A78BFA",fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:700}}>🤝 {matchedBuyers} buyer{matchedBuyers>1?"s":""}</span>}
+          {lead.repliedAt&&<span style={{background:"#00FF8722",color:"#00FF87",fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:700}}>🔔 Replied</span>}
+        </div>
+        <div style={{color:"#fff",fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.name}</div>
+        <div style={{color:"#666",fontSize:11,marginTop:1}}>📍 {lead.address}, {lead.city}, {lead.state}</div>
+      </div>
+      <div style={{textAlign:"right",flexShrink:0}}>
+        <div style={{display:"flex",alignItems:"center",gap:5,justifyContent:"flex-end"}}>
+          <div style={{height:4,width:50,background:"#1a1a2e",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${lead.score*10}%`,background:lead.score>=8?"#00FF87":lead.score>=6?"#FB923C":"#FF4444",borderRadius:2}}/></div>
+          <span style={{color:lead.score>=8?"#00FF87":lead.score>=6?"#FB923C":"#FF4444",fontSize:11,fontWeight:700}}>{lead.score}</span>
+        </div>
+        <div style={{color:"#444",fontSize:9,marginTop:2}}>Score</div>
+        {saved&&<div style={{color:"#333",fontSize:9,marginTop:1}}>{daysOld}d ago</div>}
+      </div>
+    </div>
+    {open&&<div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #ffffff08"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+        <div><div style={{color:"#444",fontSize:10,marginBottom:1}}>PHONE</div><div style={{color:"#00FF87",fontSize:13}}>{lead.phone}</div></div>
+        <div><div style={{color:"#444",fontSize:10,marginBottom:1}}>EMAIL</div><div style={{color:"#00FF87",fontSize:11,wordBreak:"break-all"}}>{lead.email}</div></div>
+      </div>
+      <div style={{background:"#ffffff05",borderRadius:8,padding:10,marginBottom:10}}>
+        {Object.entries(lead.details).map(([k,v])=>(
+          <div key={k} style={{display:"flex",justifyContent:"space-between",marginBottom:4,gap:8}}>
+            <span style={{color:"#555",fontSize:11}}>{k}</span>
+            <span style={{color:"#ccc",fontSize:11,fontWeight:600,textAlign:"right"}}>{String(v)}</span>
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#ffffff05",borderRadius:8,padding:"8px 10px",marginBottom:8,border:"1px solid #ffffff0d"}}>
+        <div style={{color:"#555",fontSize:9,textTransform:"uppercase",letterSpacing:1,marginBottom:4}}>Score Explanation</div>
+        <div style={{color:"#888",fontSize:11,lineHeight:1.6}}>{lead.score>=8?"🔥 High motivation — Priority lead. Act fast, high equity/urgency indicators.":lead.score>=6?"⚡ Moderate motivation — Good follow-up candidate, worth pursuing.":"🌱 Lower urgency — Nurture slowly, less immediate pressure to sell."}</div>
+      </div>
+      <div style={{color:"#888",fontSize:12,lineHeight:1.6,marginBottom:10}}>{lead.notes}</div>
+      <SkipTrace lead={lead}/>
+      <DealCalc lead={lead} onUpdate={onUpdate}/>
+      {saved&&<div onClick={e=>e.stopPropagation()} style={{marginBottom:10}}>
+        <div style={{color:"#555",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>Pipeline Status</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+          {STATUSES.map(s=><button key={s.id} onClick={()=>onUpdate(lead.id,"status",s.id)} style={{background:lead.status===s.id?s.bg:"transparent",color:lead.status===s.id?s.color:"#444",border:`1px solid ${lead.status===s.id?s.color+"55":"#ffffff0d"}`,borderRadius:20,padding:"4px 9px",fontSize:10,fontWeight:600,cursor:"pointer"}}>{s.label}</button>)}
+        </div>
+      </div>}
+      {saved&&<div onClick={e=>e.stopPropagation()} style={{marginBottom:10}}>
+        <div style={{color:"#555",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:6}}>My Notes</div>
+        <textarea value={lead.userNotes||""} onClick={e=>e.stopPropagation()} onChange={e=>onUpdate(lead.id,"userNotes",e.target.value)} placeholder="Left voicemail... Call back Friday..." style={{width:"100%",background:"#0a0a1f",border:"1px solid #ffffff11",borderRadius:8,padding:"8px 10px",color:"#ccc",fontSize:12,resize:"none",minHeight:60,outline:"none"}}/>
+      </div>}
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {!inSaved&&<button onClick={e=>{e.stopPropagation();onSave(lead);}} style={{background:saved?"#ffffff0d":t.color,color:saved?"#555":"#000",border:"none",borderRadius:7,padding:"8px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{saved?"✓ Saved":"Save Lead"}</button>}
+        {saved&&<button onClick={e=>{e.stopPropagation();onStartOutreach(lead);}} style={{background:"#00C9FF22",color:"#00C9FF",border:"1px solid #00C9FF33",borderRadius:7,padding:"7px 11px",fontSize:11,fontWeight:700,cursor:"pointer"}}>💬 Outreach</button>}
+        {saved&&<button onClick={e=>{e.stopPropagation();onLogCall&&onLogCall(lead);}} style={{background:"#39d98a22",color:"#39d98a",border:"1px solid #39d98a33",borderRadius:7,padding:"7px 11px",fontSize:11,fontWeight:700,cursor:"pointer"}}>📞 Log Call</button>}
+        {saved&&lead.type!=="cash"&&<button onClick={e=>{e.stopPropagation();onOpenAgreement&&onOpenAgreement(lead);}} style={{background:"#FFD70022",color:"#FFD700",border:"1px solid #FFD70033",borderRadius:7,padding:"7px 11px",fontSize:11,fontWeight:700,cursor:"pointer"}}>📄 Agreement</button>}
+        {saved&&<button onClick={e=>{e.stopPropagation();onOpenOffer&&onOpenOffer(lead);}} style={{background:"#FB923C22",color:"#FB923C",border:"1px solid #FB923C33",borderRadius:7,padding:"7px 11px",fontSize:11,fontWeight:700,cursor:"pointer"}}>💰 Offer</button>}
+        {saved&&!lead.repliedAt&&<button onClick={e=>{e.stopPropagation();onReply(lead.id);}} style={{background:"#39d98a22",color:"#39d98a",border:"1px solid #39d98a33",borderRadius:7,padding:"7px 11px",fontSize:11,fontWeight:700,cursor:"pointer"}}>🔔 Replied</button>}
+        {saved&&lead.repliedAt&&<span style={{background:"#39d98a22",color:"#39d98a",border:"1px solid #39d98a33",borderRadius:7,padding:"7px 11px",fontSize:11,fontWeight:700}}>✅ Replied</span>}
+        {inSaved&&<button onClick={e=>{e.stopPropagation();onRemove(lead.id);}} style={{background:"#FF444422",color:"#FF4444",border:"1px solid #FF444433",borderRadius:7,padding:"8px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>🗑 Remove</button>}
+        {!inSaved&&<button onClick={e=>{e.stopPropagation();onDismiss(lead.id);}} style={{background:"transparent",color:"#333",border:"1px solid #1a1a1a",borderRadius:7,padding:"8px 12px",fontSize:11,cursor:"pointer",marginLeft:"auto"}}>Dismiss</button>}
+      </div>
+    </div>}
+  </div>;
+}
+
+// ═══════════════════════════════════════════════════
+// HEAT MAP COMPONENTS
+// ═══════════════════════════════════════════════════
+function ZoneCard({zone,rank,maxHeat,onSelect,selected}){
+  const hl=heatLabel(zone.heat,maxHeat);
+  return<div onClick={()=>onSelect(zone)} style={{background:`linear-gradient(135deg,${heatColor(zone.heat,maxHeat,0.1)},#0d0d1a)`,border:`1px solid ${selected?heatColor(zone.heat,maxHeat,0.7):heatColor(zone.heat,maxHeat,0.2)}`,borderLeft:`3px solid ${heatColor(zone.heat,maxHeat,1)}`,borderRadius:10,padding:"12px 14px",marginBottom:8,cursor:"pointer"}} className="fi">
+    <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
+          <span style={{background:"#ffffff0d",color:"#555",fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10}}>#{rank}</span>
+          <span style={{background:hl.color+"22",color:hl.color,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>{hl.label}</span>
+          {zone.builderActivity>=7&&<span style={{background:"#A78BFA22",color:"#A78BFA",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>🏗️ Builder Hot</span>}
+        </div>
+        <div style={{color:"#fff",fontSize:14,fontWeight:700}}>{zone.name}</div>
+        <div style={{display:"flex",gap:10,marginTop:3,flexWrap:"wrap"}}>
+          <span style={{color:"#666",fontSize:11}}>🏠 {zone.salesVol}</span>
+          <span style={{color:"#666",fontSize:11}}>🏗️ {zone.permitVol}</span>
+          <span style={{color:"#666",fontSize:11}}>📦 {zone.lotSales} lots</span>
+        </div>
+      </div>
+      <div style={{textAlign:"right",flexShrink:0}}>
+        <div style={{color:heatColor(zone.heat,maxHeat,1),fontSize:22,fontWeight:800,fontFamily:"'Syne',sans-serif",lineHeight:1}}>{zone.heat}</div>
+        <div style={{color:"#444",fontSize:9}}>HEAT</div>
+        <div style={{color:zone.trend>0?"#00FF87":"#FF4444",fontSize:11,fontWeight:600,marginTop:2}}>{zone.trend>0?`▲+${zone.trend}%`:`▼${zone.trend}%`}</div>
+      </div>
+    </div>
+  </div>;
+}
+
+function ZoneDetail({zone,metro,maxHeat,onClose,onFindBuyers}){
+  const hl=heatLabel(zone.heat,maxHeat);
+  const maxBar=Math.max(...zone.recentSales.map(s=>s.sales));
+  return<div style={{background:"#0a0a14",border:`1px solid ${hl.color}33`,borderRadius:12,padding:16,marginBottom:14}} className="fi">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+      <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800}}>{zone.name}</div><div style={{color:hl.color,fontSize:11,fontWeight:700,marginTop:2}}>{hl.label} · Score {zone.heat}</div></div>
+      <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"3px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+      {[{l:"Sales",v:zone.salesVol,c:"#00FF87"},{l:"Permits",v:zone.permitVol,c:"#00C9FF"},{l:"Lot Sales",v:zone.lotSales,c:"#A78BFA"},{l:"Med Price",v:`$${zone.medPrice}k`,c:"#FB923C"},{l:"6mo Trend",v:`${zone.trend>0?"+":""}${zone.trend}%`,c:zone.trend>0?"#00FF87":"#FF4444"},{l:"Builders",v:`${zone.builderActivity}/10`,c:"#FF6B35"}].map(s=>(
+        <div key={s.l} style={{background:"#ffffff05",borderRadius:8,padding:"8px 10px"}}>
+          <div style={{color:s.c,fontSize:15,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{s.v}</div>
+          <div style={{color:"#555",fontSize:9,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
+        </div>
+      ))}
+    </div>
+    <div style={{background:"#ffffff05",borderRadius:8,padding:10,marginBottom:10}}>
+      <div style={{color:"#444",fontSize:10,letterSpacing:1,marginBottom:8}}>6-MONTH SALES TREND</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",gap:3}}>
+        {zone.recentSales.map((s,i)=>{const h=Math.max(4,Math.round((s.sales/maxBar)*52));return(
+          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <div style={{color:"#555",fontSize:8}}>{s.sales}</div>
+            <div style={{width:"100%",height:h,background:`linear-gradient(180deg,${heatColor(s.sales,maxBar,0.9)},${heatColor(s.sales,maxBar,0.3)})`,borderRadius:"2px 2px 0 0"}}/>
+            <div style={{color:"#333",fontSize:7}}>{s.month}</div>
+          </div>
+        );})}
+      </div>
+    </div>
+    {zone.topBuilders.length>0&&<div style={{background:"#ffffff05",borderRadius:8,padding:10,marginBottom:10}}>
+      <div style={{color:"#444",fontSize:10,letterSpacing:1,marginBottom:8}}>🏗️ ACTIVE BUILDERS</div>
+      {zone.topBuilders.map((b,i)=>(
+        <div key={i} style={{display:"flex",justifyContent:"space-between",marginBottom:i<zone.topBuilders.length-1?6:0}}>
+          <div style={{color:"#ccc",fontSize:12,fontWeight:600}}>{b.name}</div>
+          <div style={{color:"#A78BFA",fontSize:12,fontWeight:700}}>{b.avgPrice} · {b.permits} permits</div>
+        </div>
+      ))}
+    </div>}
+    <div style={{background:"#00FF8710",border:"1px solid #00FF8722",borderRadius:8,padding:10,marginBottom:10}}>
+      <div style={{color:"#00FF87",fontSize:10,fontWeight:700,marginBottom:4}}>💡 STRATEGY</div>
+      <div style={{color:"#777",fontSize:12,lineHeight:1.6}}>{zone.builderActivity>=7?`Builder hot zone — target lot sellers and connect with the ${zone.topBuilders.length} active builders pulling permits here.`:zone.salesVol>=80?`High sales volume — great for pre-foreclosure and distressed deals with fast exits.`:`Emerging zone — lower competition, growing activity. Get in early.`}</div>
+    </div>
+    <button onClick={()=>onFindBuyers(metro.name,zone.name)} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:8,padding:"11px 0",fontSize:13,fontWeight:800,cursor:"pointer",width:"100%",fontFamily:"'Syne',sans-serif"}}>💵 Find Cash Buyers in {zone.name} →</button>
+  </div>;
+}
+
+// ═══════════════════════════════════════════════════
+// OUTREACH COMPONENTS
+// ═══════════════════════════════════════════════════
+function ScriptModal({touch,lead,seq,onClose,onMarkSent}){
+  const[copied,setCopied]=useState(false);
+  const script=touch.script(lead.name.replace("Estate of ",""),`${lead.address||""}, ${lead.city||""}, ${lead.state||""}`);
+  const copy=()=>{navigator.clipboard.writeText(script);setCopied(true);setTimeout(()=>setCopied(false),2000);};
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:200,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#0d0d1a",border:`1px solid ${seq.color}33`,borderRadius:"16px 16px 0 0",padding:20,width:"100%",maxHeight:"80vh",overflowY:"auto"}} className="fi">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+          <div>
+            <div style={{color:seq.color,fontSize:11,fontWeight:700,letterSpacing:1}}>{seq.icon} {seq.label} · Day {touch.day}</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,marginTop:2}}>{touch.label}</div>
+            <div style={{color:"#555",fontSize:11,marginTop:2}}>From: {seq.sender} · To: {lead.name}</div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{background:"#ffffff06",borderRadius:10,padding:14,marginBottom:12,border:`1px solid ${seq.color}22`}}>
+          <div style={{color:"#555",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Message</div>
+          <div style={{color:"#ddd",fontSize:13,lineHeight:1.8}}>{script}</div>
+        </div>
+        <div style={{color:"#444",fontSize:11,marginBottom:12}}>{script.length} chars · {Math.ceil(script.length/160)} SMS segment{Math.ceil(script.length/160)>1?"s":""}</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          <a href={`sms:${lead.phone}&body=${encodeURIComponent(script)}`} style={{background:`linear-gradient(135deg,${seq.color},${seq.color}88)`,color:"#000",border:"none",borderRadius:10,padding:"12px 0",fontSize:13,fontWeight:800,textAlign:"center",textDecoration:"none",display:"block",fontFamily:"'Syne',sans-serif"}}>📱 Open in Messages</a>
+          <button onClick={copy} style={{background:copied?"#00FF8722":"#ffffff0d",color:copied?"#00FF87":"#888",border:`1px solid ${copied?"#00FF8744":"#ffffff11"}`,borderRadius:10,padding:"12px 0",fontSize:13,fontWeight:700,cursor:"pointer"}}>{copied?"✓ Copied!":"📋 Copy Text"}</button>
+        </div>
+        <button onClick={()=>{onMarkSent(lead.id,touch.day);onClose();}} style={{background:"#00FF8715",color:"#00FF87",border:"1px solid #00FF8733",borderRadius:10,padding:"11px 0",fontSize:12,fontWeight:700,cursor:"pointer",width:"100%"}}>✓ Mark as Sent</button>
+      </div>
+    </div>
+  );
+}
+
+function OutreachCard({lead,log,onOpenScript}){
+  const seq=SEQUENCES[lead.type]||SEQUENCES.preforeclosure;
+  const leadLog=log[lead.id]||{};
+  const sentDays=Object.keys(leadLog).map(Number);
+  const nextTouch=seq.touches.find(t=>!sentDays.includes(t.day));
+  const allDone=sentDays.length>=seq.touches.length;
+  return<div style={{background:"#0d0d1a",border:`1px solid ${seq.color}22`,borderLeft:`3px solid ${seq.color}`,borderRadius:10,padding:"13px 14px",marginBottom:10}} className="fi">
+    <div style={{display:"flex",justifyContent:"space-between",gap:8,marginBottom:10}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
+          <span style={{background:seq.color+"22",color:seq.color,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:20}}>{seq.icon} {seq.label}</span>
+          <span style={{background:"#ffffff0d",color:"#666",fontSize:10,padding:"2px 7px",borderRadius:20}}>{seq.sender}</span>
+          {allDone&&<span style={{background:"#00FF8722",color:"#00FF87",fontSize:10,padding:"2px 7px",borderRadius:20,fontWeight:700}}>✓ Done</span>}
+        </div>
+        <div style={{color:"#fff",fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lead.name}</div>
+        <div style={{color:"#555",fontSize:11,marginTop:1}}>📱 {lead.phone}</div>
+      </div>
+      <div style={{textAlign:"right",flexShrink:0}}>
+        <div style={{color:seq.color,fontSize:18,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{sentDays.length}/{seq.touches.length}</div>
+        <div style={{color:"#444",fontSize:9}}>TOUCHES</div>
+      </div>
+    </div>
+    <div style={{display:"flex",gap:4,marginBottom:10}}>
+      {seq.touches.map((t,i)=>{const sent=sentDays.includes(t.day),isNext=nextTouch?.day===t.day;return(
+        <div key={t.day} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+          <div style={{width:"100%",height:3,background:sent?seq.color:isNext?seq.color+"44":"#1a1a2e",borderRadius:2}}/>
+          <div style={{color:sent?seq.color:isNext?"#888":"#333",fontSize:8,fontWeight:sent||isNext?700:400}}>D{t.day}</div>
+        </div>
+      );})}
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {seq.touches.map((touch,i)=>{
+        const sent=sentDays.includes(touch.day),isNext=nextTouch?.day===touch.day;
+        return<div key={touch.day} style={{display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{width:24,height:24,borderRadius:"50%",background:sent?seq.color+"22":isNext?seq.color+"15":"#ffffff05",border:`1px solid ${sent?seq.color:isNext?seq.color+"44":"#ffffff0d"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <span style={{color:sent?seq.color:isNext?seq.color:"#333",fontSize:9,fontWeight:700}}>{sent?"✓":i+1}</span>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{color:sent?"#555":isNext?"#fff":"#444",fontSize:11,fontWeight:isNext?700:400}}>Day {touch.day} — {touch.label}</div>
+          </div>
+          <button onClick={()=>onOpenScript(lead,touch,seq)} style={{background:sent?"transparent":isNext?seq.color:"#ffffff08",color:sent?"#444":isNext?"#000":"#555",border:`1px solid ${sent?"#ffffff0d":isNext?"transparent":"#ffffff0d"}`,borderRadius:7,padding:"4px 9px",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>{sent?"Resend":"Send"}</button>
+        </div>;
+      })}
+    </div>
+  </div>;
+}
+
+// ═══════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════
+// ═══ AGREEMENT GENERATOR ═══
+
+
+
+
+function AgreementModal({lead,onClose}){
+  const[type,setType]=useState("sfh");
+  const[price,setPrice]=useState("");
+  const[closeDate,setCloseDate]=useState("");
+  const[emd,setEmd]=useState("100");
+  const[email,setEmail]=useState(()=>localStorage.getItem("df_user_email")||"");
+  const[copied,setCopied]=useState(false);
+  const text=type==="sfh"?SFH_AGREEMENT(lead,emd,price,closeDate):LAND_AGREEMENT(lead,emd,price,closeDate);
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{padding:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800}}>📄 Send Agreement</div>
+          <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          {[["sfh","🏠 Single Family"],["land","🌿 Land / Lot"]].map(([id,label])=>(
+            <button key={id} onClick={()=>{setType(id);setEmd(id==="sfh"?"100":"500");}} style={{background:type===id?"#39d98a22":"#0d0d1a",border:`2px solid ${type===id?"#39d98a":"#ffffff11"}`,borderRadius:10,padding:"10px",fontSize:12,fontWeight:700,color:type===id?"#39d98a":"#555",cursor:"pointer"}}>{label}</button>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          {[["Purchase Price ($)","price",price,setPrice],["Close Date","date",closeDate,setCloseDate],["EMD ($)","emd",emd,setEmd],["Your Email","email",email,v=>{setEmail(v);localStorage.setItem("df_user_email",v);}]].map(([label,id,val,setter])=>(
+            <div key={id}><div style={{color:"#555",fontSize:10,marginBottom:4}}>{label}</div>
+            <input value={val} onChange={e=>setter(e.target.value)} style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:7,padding:"7px 10px",color:"#fff",fontSize:12,outline:"none"}}/></div>
+          ))}
+        </div>
+        <div style={{background:"#ffffff05",borderRadius:8,padding:10,marginBottom:12,maxHeight:120,overflowY:"auto"}}>
+          <pre style={{color:"#777",fontSize:10,whiteSpace:"pre-wrap",lineHeight:1.6}}>{text.substring(0,350)}...</pre>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+          <button onClick={()=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{background:copied?"#39d98a22":"#ffffff0d",color:copied?"#39d98a":"#888",border:"1px solid "+(copied?"#39d98a44":"#ffffff11"),borderRadius:10,padding:"11px",fontSize:12,fontWeight:700,cursor:"pointer"}}>{copied?"✓ Copied!":"📋 Copy"}</button>
+          <button onClick={()=>window.open("mailto:"+(lead.email||"")+"?subject="+encodeURIComponent("Purchase Agreement — "+(lead.address||"Property"))+"&body="+encodeURIComponent(text),"_self")} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"11px",fontSize:12,fontWeight:800,cursor:"pointer"}}>📧 Email</button>
+        </div>
+        <div style={{marginBottom:8}}>
+          <div style={{color:"#555",fontSize:10,marginBottom:6,letterSpacing:1}}>✍️ SEND TO E-SIGN PLATFORM</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {[["DocHub","#E84E4E","https://dochub.com"],["DocuSign","#FFBE00","https://www.docusign.com"],["HelloSign","#00A9E0","https://www.hellosign.com"],["Adobe Sign","#FF0000","https://acrobat.adobe.com/us/en/sign.html"]].map(([name,color,url])=>(
+              <button key={name} onClick={()=>{navigator.clipboard.writeText(text);window.open(url,"_blank");}} style={{background:color+"15",color:color,border:"1px solid "+color+"33",borderRadius:8,padding:"7px 6px",fontSize:10,fontWeight:700,cursor:"pointer",textAlign:"center"}}>
+                {name}<div style={{fontSize:9,fontWeight:400,opacity:0.7}}>Copies + Opens</div>
+              </button>
+            ))}
+          </div>
+          <div style={{color:"#444",fontSize:9,marginTop:5,lineHeight:1.4}}>Agreement is copied to clipboard then your chosen platform opens. Paste into a new document to request signature. Notification when signed — coming with Supabase.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ CALL LOGGER ═══
+
+function CallLogModal({lead,onClose,onSave}){
+  const[outcome,setOutcome]=useState(CALL_OUTCOMES[0]);
+  const[notes,setNotes]=useState("");
+  const[followUp,setFollowUp]=useState("");
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{padding:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800}}>📞 Log a Call</div>
+          <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{color:"#888",fontSize:13,marginBottom:12}}>with <strong style={{color:"#fff"}}>{lead.name}</strong></div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:"#555",fontSize:10,marginBottom:6}}>OUTCOME</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {CALL_OUTCOMES.map(o=><button key={o} onClick={()=>setOutcome(o)} style={{background:outcome===o?"#39d98a22":"transparent",color:outcome===o?"#39d98a":"#555",border:`1px solid ${outcome===o?"#39d98a55":"#ffffff11"}`,borderRadius:20,padding:"5px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{o}</button>)}
+          </div>
+        </div>
+        <div style={{marginBottom:12}}>
+          <div style={{color:"#555",fontSize:10,marginBottom:4}}>NOTES</div>
+          <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="What was discussed..." style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:8,padding:"8px 10px",color:"#ccc",fontSize:12,resize:"none",minHeight:60,outline:"none"}}/>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={{color:"#555",fontSize:10,marginBottom:4}}>FOLLOW-UP DATE</div>
+          <input type="date" value={followUp} onChange={e=>setFollowUp(e.target.value)} style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:8,padding:"8px 10px",color:"#ccc",fontSize:12,outline:"none"}}/>
+        </div>
+        <button onClick={()=>{onSave(lead.id,{id:Date.now(),date:new Date().toISOString(),outcome,notes,followUp},followUp);onClose();}} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"13px 0",fontSize:13,fontWeight:800,cursor:"pointer",width:"100%"}}>Save Call Log</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══ OFFER TRACKER ═══
+function OfferModal({lead,onClose,onSave}){
+  const[amount,setAmount]=useState(lead.offerAmount||"");
+  const[status,setStatus]=useState(lead.offerStatus||"Pending");
+  const[counter,setCounter]=useState(lead.counterOffer||"");
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{padding:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800}}>💰 Offer Tracker</div>
+          <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{color:"#888",fontSize:12,marginBottom:12}}>{lead.name} — {lead.address}</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+          <div><div style={{color:"#555",fontSize:10,marginBottom:4}}>OFFER AMOUNT ($)</div><input value={amount} onChange={e=>setAmount(e.target.value)} placeholder="125000" style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:7,padding:"8px 10px",color:"#fff",fontSize:12,outline:"none"}}/></div>
+          <div><div style={{color:"#555",fontSize:10,marginBottom:4}}>COUNTER OFFER ($)</div><input value={counter} onChange={e=>setCounter(e.target.value)} placeholder="Optional" style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:7,padding:"8px 10px",color:"#fff",fontSize:12,outline:"none"}}/></div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={{color:"#555",fontSize:10,marginBottom:6}}>STATUS</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {["Pending","Accepted","Rejected","Countered","Expired"].map(s=><button key={s} onClick={()=>setStatus(s)} style={{background:status===s?"#FB923C22":"transparent",color:status===s?"#FB923C":"#555",border:`1px solid ${status===s?"#FB923C55":"#ffffff11"}`,borderRadius:20,padding:"5px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{s}</button>)}
+          </div>
+        </div>
+        <button onClick={()=>{onSave(lead.id,{offerAmount:amount,offerStatus:status,offerDate:new Date().toISOString(),counterOffer:counter});onClose();}} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"13px 0",fontSize:13,fontWeight:800,cursor:"pointer",width:"100%"}}>Save Offer</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══ TUTORIAL ═══
+
+
+function TutorialOverlay({step,onNext,onSkip}){
+  const s=TUTORIAL_STEPS[step];if(!s)return null;
+  const isLast=step===TUTORIAL_STEPS.length-1;
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"linear-gradient(135deg,#0d0f1f,#111428)",border:"1px solid #39d98a44",borderRadius:20,padding:26,maxWidth:320,width:"100%",textAlign:"center"}} className="fi">
+        <div style={{fontSize:44,marginBottom:10}}>{s.icon}</div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:8}}>{s.title}</div>
+        <div style={{color:"#888",fontSize:13,lineHeight:1.8,marginBottom:18,whiteSpace:"pre-line"}}>{s.desc}</div>
+        <div style={{display:"flex",gap:10}}>
+          {!isLast&&<button onClick={onSkip} style={{flex:1,background:"transparent",color:"#444",border:"1px solid #333",borderRadius:10,padding:"10px 0",fontSize:12,cursor:"pointer"}}>Skip</button>}
+          <button onClick={onNext} style={{flex:2,background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"10px 0",fontSize:13,fontWeight:800,cursor:"pointer"}}>{isLast?"Let's Go! 🚀":`Next (${step+1}/${TUTORIAL_STEPS.length})`}</button>
+        </div>
+        <div style={{display:"flex",gap:4,justifyContent:"center",marginTop:12}}>
+          {TUTORIAL_STEPS.map((_,i)=><div key={i} style={{width:i===step?14:5,height:5,borderRadius:3,background:i===step?"#39d98a":"#333",transition:"width 0.2s"}}/>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ FAQ ═══
+
+
+function FAQPage({onClose}){
+  const[search,setSearch]=useState("");
+  const[open,setOpen]=useState(null);
+  const filtered=FAQ_DATA.filter(f=>!search||f.q.toLowerCase().includes(search.toLowerCase())||f.a.toLowerCase().includes(search.toLowerCase()));
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{height:"80vh",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #ffffff0d",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800}}>❓ FAQ</div>
+          <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{padding:"10px 20px",borderBottom:"1px solid #ffffff0d"}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search questions..." style={{width:"100%",background:"#0d0d1a",border:"1px solid #ffffff11",borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:12,outline:"none"}}/>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"12px 20px"}}>
+          {filtered.map((f,i)=>(
+            <div key={i} style={{marginBottom:8,background:"#0a0a14",border:"1px solid #ffffff0d",borderRadius:10,overflow:"hidden"}}>
+              <button onClick={()=>setOpen(open===i?null:i)} style={{width:"100%",background:"transparent",border:"none",padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+                <span style={{color:"#ccc",fontSize:13,fontWeight:600,flex:1,textAlign:"left",paddingRight:8}}>{f.q}</span>
+                <span style={{color:"#39d98a",fontSize:16,flexShrink:0}}>{open===i?"−":"+"}</span>
+              </button>
+              {open===i&&<div style={{padding:"0 14px 12px",color:"#888",fontSize:12,lineHeight:1.7,borderTop:"1px solid #ffffff08"}}>{f.a}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ AI SUPPORT CHAT ═══
+
+function AISupportChat({onClose}){
+  const[msgs,setMsgs]=useState([{role:"ai",text:"Hi! I'm the DealOMetor support assistant. Ask me anything about the app!"}]);
+  const[input,setInput]=useState("");
+  const[loading,setLoading]=useState(false);
+  const bottomRef=useRef(null);
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+  const send=async()=>{
+    if(!input.trim()||loading)return;
+    const q=input.trim();setInput("");
+    setMsgs(p=>[...p,{role:"user",text:q}]);setLoading(true);
+    const faq=FAQ_DATA.find(f=>q.toLowerCase().includes(f.q.toLowerCase().split(" ")[0].toLowerCase()));
+    if(faq&&q.length<60){setTimeout(()=>{setMsgs(p=>[...p,{role:"ai",text:faq.a}]);setLoading(false);},500);return;}
+    setMsgs(p=>[...p,{role:"ai",text:"Great question! For that, please email support@dealometor.com or check the FAQ in the ☰ menu. Full AI responses are coming with our Supabase upgrade!"}]);setLoading(false);
+  };
+  return(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{height:"72vh",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"14px 20px",borderBottom:"1px solid #ffffff0d",display:"flex",justifyContent:"space-between"}}>
+          <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800}}>🤖 AI Support</div><div style={{color:"#39d98a",fontSize:10,marginTop:1}}>Available 24/7</div></div>
+          <a href="https://chatgpt.com/g/g-684ba9d691c8819192e8e327ddcd2fd6-s-m-a-r-t-deal-analyzer" target="_blank" rel="noreferrer" onClick={e=>e.stopPropagation()} style={{background:"#10a37f22",color:"#10a37f",border:"1px solid #10a37f44",borderRadius:8,padding:"5px 8px",fontSize:9,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",marginRight:8,alignSelf:"center"}}>🧠 S.M.A.R.T</a><button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"14px 18px",display:"flex",flexDirection:"column",gap:10}}>
+          {msgs.map((m,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+              <div style={{background:m.role==="user"?"linear-gradient(135deg,#39d98a,#00C9FF)":"#0d0d1a",color:m.role==="user"?"#000":"#ccc",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",maxWidth:"84%",fontSize:13,lineHeight:1.6,border:m.role!=="user"?"1px solid #ffffff0d":"none"}}>{m.text}</div>
+            </div>
+          ))}
+          {loading&&<div style={{display:"flex",justifyContent:"flex-start"}}><div style={{background:"#0d0d1a",border:"1px solid #ffffff0d",borderRadius:"16px 16px 16px 4px",padding:"10px 14px",color:"#555",fontSize:13}}>Thinking...</div></div>}
+          <div ref={bottomRef}/>
+        </div>
+        <div style={{padding:"8px 14px",display:"flex",flexWrap:"wrap",gap:5}}>
+          {["How do I find leads?","What is the Heat Map?","How does the calculator work?","How do I send outreach?"].map(q=>(
+            <button key={q} onClick={()=>setInput(q)} style={{background:"#39d98a15",color:"#39d98a",border:"1px solid #39d98a33",borderRadius:20,padding:"3px 9px",fontSize:10,fontWeight:600,cursor:"pointer"}}>{q}</button>
+          ))}
+        </div>
+        <div style={{padding:"8px 14px 14px",display:"flex",gap:8}}>
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Ask anything..." style={{flex:1,background:"#0d0d1a",border:"1px solid #ffffff11",borderRadius:10,padding:"10px 14px",color:"#fff",fontSize:13,outline:"none"}}/>
+          <button onClick={send} disabled={loading||!input.trim()} style={{background:input.trim()?"linear-gradient(135deg,#39d98a,#00C9FF)":"#1a1a1a",color:input.trim()?"#000":"#444",border:"none",borderRadius:10,padding:"10px 16px",fontSize:14,fontWeight:800,cursor:input.trim()?"pointer":"not-allowed"}}>→</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ HAMBURGER MENU ═══
+function HamburgerMenu({onClose,onTutorial,onSupport,onFAQ,onVideoTuts}){
+  const[section,setSection]=useState("main");
+  const[profile,setProfile]=useState(()=>{try{return JSON.parse(localStorage.getItem("df_profile")||"{}");}catch{return{};}});
+  const[pic,setPic]=useState(()=>localStorage.getItem("df_profile_pic")||null);
+  const saveProfile=()=>{localStorage.setItem("df_profile",JSON.stringify(profile));alert("Profile saved!");};
+  const uploadPic=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{setPic(ev.target.result);localStorage.setItem("df_profile_pic",ev.target.result);};reader.readAsDataURL(file);};
+  const items=[
+    {icon:"🏠",label:"Home",fn:onClose},
+    {icon:"👤",label:"Profile",fn:()=>setSection("profile")},
+    {icon:"💳",label:"Billing",fn:()=>setSection("billing")},
+    {icon:"🎬",label:"Video Tutorials",fn:()=>{onClose();onVideoTuts&&onVideoTuts();}},
+    {icon:"🎓",label:"Setup Walkthrough",fn:()=>{onClose();onTutorial();}},
+    {icon:"❓",label:"FAQ",fn:()=>{onClose();onFAQ();}},
+    {icon:"🤖",label:"AI Support",fn:()=>{onClose();onSupport();}},
+    {icon:"📧",label:"Contact Us",fn:()=>{window.open("mailto:support@dealometor.com?subject=DealOMetor Support","_self");}},
+    {icon:"🔗",label:"Affiliate Program",fn:()=>setSection("affiliate")},
+    {icon:"🚪",label:"Sign Out",fn:()=>{if(window.confirm("Sign out of DealOMetor?")){logoutUser();}},color:"#FF4444"},
+  ];
+  return(
+    <>
+      <div className="menu-overlay" onClick={onClose}/>
+      <div className="menu-drawer">
+        <div style={{background:"linear-gradient(135deg,#0d0f1f,#111428)",padding:"18px 18px 14px",borderBottom:"1px solid #39d98a22"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800}}>{section==="main"?"Menu":section==="profile"?"Profile":section==="billing"?"Billing":"Affiliate"}</div>
+            <button onClick={section==="main"?onClose:()=>setSection("main")} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>{section==="main"?"✕":"← Back"}</button>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <label style={{cursor:"pointer"}}>
+              <div style={{width:50,height:50,borderRadius:"50%",background:pic?"transparent":"#39d98a22",border:"2px solid #39d98a44",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",flexShrink:0}}>
+                {pic?<img src={pic} alt="Profile" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:22}}>👤</span>}
+              </div>
+              <input type="file" accept="image/*" style={{display:"none"}} onChange={uploadPic}/>
+            </label>
+            <div>
+              <div style={{color:"#fff",fontSize:13,fontWeight:700}}>{profile.name||"Your Name"}</div>
+              <div style={{color:"#39d98a",fontSize:10,marginTop:1}}>{profile.email||"your@email.com"}</div>
+              <div style={{color:"#444",fontSize:9,marginTop:1}}>Tap photo to change</div>
+            </div>
+          </div>
+        </div>
+        {section==="main"&&<div style={{padding:"8px 0"}}>
+          {items.map((item,i)=>(
+            <button key={i} onClick={item.fn} style={{width:"100%",background:"transparent",border:"none",borderBottom:"1px solid #ffffff06",padding:"14px 18px",display:"flex",alignItems:"center",gap:12,cursor:"pointer"}}>
+              <span style={{fontSize:20,width:26,textAlign:"center"}}>{item.icon}</span>
+              <span style={{color:item.color||"#ccc",fontSize:14,fontWeight:600}}>{item.label}</span>
+              <span style={{color:"#333",marginLeft:"auto"}}>›</span>
+            </button>
+          ))}
+          <div style={{padding:"14px 18px",borderTop:"1px solid #ffffff06"}}>
+            <div style={{color:"#39d98a",fontSize:11,fontWeight:700}}>DealOMetor™</div>
+            <div style={{color:"#333",fontSize:10,marginTop:2}}>Measure the Market. Master the Deal.</div>
+            <div style={{color:"#222",fontSize:9,marginTop:2}}>v2.0 · dealometor.com</div>
+          </div>
+        </div>}
+        {section==="profile"&&<div style={{padding:"16px 18px"}}>
+          {[["Full Name","name"],["Email","email"],["Phone","phone"],["Company","company"],["Outreach Email","senderEmail"]].map(([label,key])=>(
+            <div key={key} style={{marginBottom:12}}>
+              <div style={{color:"#555",fontSize:11,marginBottom:4}}>{label}</div>
+              <input value={profile[key]||""} onChange={e=>setProfile(p=>({...p,[key]:e.target.value}))} style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:8,padding:"9px 12px",color:"#fff",fontSize:13,outline:"none"}}/>
+            </div>
+          ))}
+          <button onClick={saveProfile} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"12px 0",fontSize:13,fontWeight:800,cursor:"pointer",width:"100%"}}>Save Profile</button>
+        </div>}
+        {section==="billing"&&<div style={{padding:"16px 18px"}}>
+          <div style={{background:"#39d98a15",border:"1px solid #39d98a33",borderRadius:12,padding:16,marginBottom:14}}>
+            <div style={{color:"#39d98a",fontSize:12,fontWeight:700,marginBottom:4}}>Current Plan</div>
+            <div style={{color:"#fff",fontSize:20,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>$97<span style={{fontSize:13,fontWeight:400,color:"#555"}}>/mo</span></div>
+            <div style={{color:"#555",fontSize:11,marginTop:4}}>DealOMetor Pro · Active</div>
+          </div>
+          <button onClick={()=>alert("Stripe billing portal — coming with Supabase!")} style={{background:"#ffffff0d",color:"#ccc",border:"1px solid #ffffff11",borderRadius:10,padding:"12px 0",fontSize:13,fontWeight:700,cursor:"pointer",width:"100%",marginBottom:10}}>💳 Update Payment Method</button>
+          <button onClick={()=>alert("Billing history — coming soon!")} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:10,padding:"12px 0",fontSize:13,cursor:"pointer",width:"100%"}}>📄 View Billing History</button>
+        </div>}
+        {section==="affiliate"&&<div style={{padding:"16px 18px"}}>
+          <div style={{background:"#A78BFA15",border:"1px solid #A78BFA33",borderRadius:12,padding:16,marginBottom:14,textAlign:"center"}}>
+            <div style={{fontSize:30,marginBottom:8}}>🤝</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800,marginBottom:6}}>Earn With DealOMetor</div>
+            <div style={{color:"#888",fontSize:12,lineHeight:1.7}}>Refer investors and earn <strong style={{color:"#A78BFA"}}>30% recurring</strong> for every active subscriber.</div>
+          </div>
+          {[["Your Referrals","0","#39d98a"],["Monthly Earnings","$0.00","#FFD700"],["Total Earned","$0.00","#A78BFA"]].map(([l,v,c])=>(
+            <div key={l} style={{background:"#ffffff05",border:"1px solid #ffffff0d",borderRadius:10,padding:"11px 14px",marginBottom:8,display:"flex",justifyContent:"space-between"}}>
+              <span style={{color:"#888",fontSize:12}}>{l}</span><span style={{color:c,fontSize:14,fontWeight:800}}>{v}</span>
+            </div>
+          ))}
+          <div style={{background:"#0d0d1a",border:"1px solid #ffffff0d",borderRadius:10,padding:12,marginBottom:12}}>
+            <div style={{color:"#555",fontSize:10,marginBottom:4}}>YOUR REFERRAL LINK</div>
+            <div style={{color:"#888",fontSize:12,background:"#111",borderRadius:7,padding:"8px 10px"}}>dealometor.com/ref/YOURCODE</div>
+            <div style={{color:"#333",fontSize:10,marginTop:4}}>Full dashboard coming with Supabase</div>
+          </div>
+          <button onClick={()=>alert("Affiliate system launching soon!")} style={{background:"linear-gradient(135deg,#A78BFA,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"12px 0",fontSize:13,fontWeight:800,cursor:"pointer",width:"100%"}}>Join Affiliate Program</button>
+        </div>}
+      </div>
+    </>
+  );
+}
+
+
+
+function VideoTutorialsPage({onClose}){
+  const[active,setActive]=useState(null);
+  const[step,setStep]=useState(0);
+  if(active){
+    const isLast=step>=active.steps.length-1;
+    const pct=Math.round((step/(active.steps.length-1))*100);
+    return(
+      <div style={{position:"fixed",inset:0,background:"#000000ee",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+        <div style={{background:"linear-gradient(135deg,#0d0f1f,#111428)",border:"2px solid "+active.color+"44",borderRadius:20,width:"100%",maxWidth:360,overflow:"hidden"}}>
+          <div style={{background:active.color+"15",padding:"14px 18px",borderBottom:"1px solid "+active.color+"22",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:22}}>{active.icon}</span>
+              <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:14,fontWeight:800,color:"#fff"}}>{active.title}</div><div style={{color:active.color,fontSize:10}}>Step {step+1} of {active.steps.length}</div></div>
+            </div>
+            <button onClick={()=>{setActive(null);setStep(0);}} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"3px 9px",fontSize:11,cursor:"pointer"}}>✕</button>
+          </div>
+          <div style={{height:3,background:"#1a1a2e"}}><div style={{height:"100%",width:pct+"%",background:active.color,transition:"width 0.3s ease"}}/></div>
+          <div style={{background:"#07070f",minHeight:130,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+            <div style={{border:"2px solid "+active.color+"44",borderRadius:12,padding:"14px 16px",background:"#0d0d1a",textAlign:"center",maxWidth:260,position:"relative"}}>
+              <div style={{fontSize:28,marginBottom:8}}>{active.icon}</div>
+              <div style={{background:active.color+"22",border:"1px solid "+active.color+"33",borderRadius:8,padding:"8px 10px"}}>
+                <div style={{color:active.color,fontSize:11,fontWeight:600,lineHeight:1.5}}>{active.steps[step]}</div>
+              </div>
+              <div style={{position:"absolute",bottom:-8,right:-8,width:22,height:22,borderRadius:"50%",background:active.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11}}>👆</div>
+            </div>
+          </div>
+          <div style={{padding:"14px 18px"}}>
+            <div style={{display:"flex",gap:3,justifyContent:"center",marginBottom:12}}>
+              {active.steps.map((_,i)=><button key={i} onClick={()=>setStep(i)} style={{width:i===step?16:6,height:6,borderRadius:3,background:i===step?active.color:i<step?active.color+"55":"#1a1a2e",border:"none",cursor:"pointer",transition:"all 0.2s"}}/>)}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              {step>0&&<button onClick={()=>setStep(p=>p-1)} style={{flex:1,background:"#ffffff0d",color:"#888",border:"1px solid #ffffff11",borderRadius:10,padding:"10px 0",fontSize:12,cursor:"pointer"}}>← Back</button>}
+              <button onClick={()=>isLast?setActive(null):setStep(p=>p+1)} style={{flex:2,background:"linear-gradient(135deg,"+active.color+","+active.color+"88)",color:"#000",border:"none",borderRadius:10,padding:"10px 0",fontSize:12,fontWeight:800,cursor:"pointer"}}>{isLast?"✓ Done!":"Next →"}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000000aa",zIndex:400,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+      <div style={{background:"#0d0d1a",borderRadius:"20px 20px 0 0",width:"100%",height:"78vh",display:"flex",flexDirection:"column"}} onClick={e=>e.stopPropagation()}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #ffffff0d",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800}}>🎬 Video Tutorials</div><div style={{color:"#39d98a",fontSize:10,marginTop:1}}>{VIDEO_TUTS.length} step-by-step guides</div></div>
+          <button onClick={onClose} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:20,padding:"4px 10px",fontSize:11,cursor:"pointer"}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"14px 18px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignContent:"start"}}>
+          {VIDEO_TUTS.map(tut=>(
+            <button key={tut.id} onClick={()=>{setActive(tut);setStep(0);}} style={{background:tut.color+"10",border:"1px solid "+tut.color+"33",borderRadius:14,padding:"14px 12px",cursor:"pointer",textAlign:"left",display:"flex",flexDirection:"column",gap:5}}>
+              <div style={{fontSize:26}}>{tut.icon}</div>
+              <div style={{color:"#fff",fontSize:12,fontWeight:700,lineHeight:1.3}}>{tut.title}</div>
+              <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#444",fontSize:10}}>{tut.steps.length} steps</span><span style={{color:tut.color,fontSize:10,fontWeight:700}}>{tut.time}</span></div>
+              <div style={{background:tut.color,color:"#000",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:800,textAlign:"center"}}>▶ Start</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══ LOGIN / SIGNUP PAGE ═══
+function LoginPage({onLogin}){
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[password,setPassword]=useState("");
+  const[name,setName]=useState("");
+  const[confirm,setConfirm]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[error,setError]=useState("");
+
+  const submit=async()=>{
+    if(!email||!password){setError("Please enter email and password");return;}
+    if(mode==="signup"&&password!==confirm){setError("Passwords don't match");return;}
+    if(mode==="signup"&&password.length<6){setError("Password must be at least 6 characters");return;}
+    setLoading(true);setError("");
+    try{
+      const endpoint=mode==="signup"?"signup":"token?grant_type=password";
+      const body=mode==="signup"?{email,password,data:{name}}:{email,password};
+      const headers={"Content-Type":"application/json","apikey":SUPABASE_KEY};
+      if(mode!=="signup")headers["Authorization"]="Bearer "+SUPABASE_KEY;
+      const res=await fetch(SUPABASE_URL+"/auth/v1/"+endpoint,{
+        method:"POST",
+        headers,
+        body:JSON.stringify(body)
+      });
+      let data={};
+      try{data=await res.json();}catch(e){}
+      if(!res.ok)throw new Error(data.error_description||data.message||data.msg||data.error||"Error "+res.status);
+      if(mode==="signup"){
+        // Auto sign in after signup
+        const loginRes=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","apikey":SUPABASE_KEY},
+          body:JSON.stringify({email,password})
+        });
+        let loginData={};
+        try{loginData=await loginRes.json();}catch(e){}
+        if(!loginRes.ok)throw new Error(loginData.error_description||"Account created! Please sign in.");
+        onLogin({id:loginData.user?.id,email,name});
+      }else{
+        onLogin({id:data.user?.id||data.id,email,name});
+      }
+    }catch(err){
+      setError(err.message||"Connection failed. Check internet.");
+    }
+    setLoading(false);
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#070714,#0d0f1f)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:360}}>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:8}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:30,lineHeight:1}}>
+              <span style={{color:"#fff"}}>Deal</span><span style={{color:"#39d98a"}}>O</span><span style={{color:"#39d98a"}}>Metor</span>
+            </div>
+          </div>
+          <div style={{color:"#39d98a",fontSize:10,letterSpacing:2}}>MEASURE THE MARKET. MASTER THE DEAL.</div>
+        </div>
+        <div style={{background:"#0d0d1a",border:"1px solid #ffffff0d",borderRadius:20,padding:24}}>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,marginBottom:4,color:"#fff"}}>{mode==="login"?"Welcome Back 👋":"Create Account"}</div>
+          <div style={{color:"#555",fontSize:12,marginBottom:20}}>{mode==="login"?"Sign in to your DealOMetor account":"Start closing more deals today"}</div>
+          {mode==="signup"&&<div style={{marginBottom:12}}>
+            <div style={{color:"#555",fontSize:11,marginBottom:4}}>Full Name</div>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:10,padding:"11px 14px",color:"#fff",fontSize:13,outline:"none"}}/>
+          </div>}
+          <div style={{marginBottom:12}}>
+            <div style={{color:"#555",fontSize:11,marginBottom:4}}>Email</div>
+            <input value={email} onChange={e=>setEmail(e.target.value)} type="email" placeholder="your@email.com" style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:10,padding:"11px 14px",color:"#fff",fontSize:13,outline:"none"}}/>
+          </div>
+          <div style={{marginBottom:mode==="signup"?12:16}}>
+            <div style={{color:"#555",fontSize:11,marginBottom:4}}>Password</div>
+            <input value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} type="password" placeholder="••••••••" style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:10,padding:"11px 14px",color:"#fff",fontSize:13,outline:"none"}}/>
+          </div>
+          {mode==="signup"&&<div style={{marginBottom:16}}>
+            <div style={{color:"#555",fontSize:11,marginBottom:4}}>Confirm Password</div>
+            <input value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} type="password" placeholder="••••••••" style={{width:"100%",background:"#111",border:"1px solid "+(confirm&&confirm!==password?"#FF444466":"#ffffff11"),borderRadius:10,padding:"11px 14px",color:"#fff",fontSize:13,outline:"none"}}/>
+            {confirm&&confirm!==password&&<div style={{color:"#FF4444",fontSize:10,marginTop:4}}>Passwords don't match</div>}
+          </div>}
+          {error&&<div style={{background:error.startsWith("✅")?"#39d98a15":"#FF444415",border:"1px solid "+(error.startsWith("✅")?"#39d98a33":"#FF444433"),borderRadius:8,padding:"8px 12px",color:error.startsWith("✅")?"#39d98a":"#FF4444",fontSize:12,marginBottom:12,lineHeight:1.5}}>{error}</div>}
+          <button onClick={submit} disabled={loading} style={{background:loading?"#1a1a1a":"linear-gradient(135deg,#39d98a,#00C9FF)",color:loading?"#444":"#000",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:800,cursor:loading?"not-allowed":"pointer",width:"100%",fontFamily:"'Syne',sans-serif",marginBottom:10}}>
+            {loading?"Please wait...":(mode==="login"?"Sign In →":"Create Account →")}
+          </button>
+          <button onClick={async()=>{
+            try{
+              // Test 1: No headers (avoids CORS preflight)
+              setError("Test 1: Plain fetch...");
+              const r1=await fetch("https://kqsxbfnjpwtupmmmmstwf.supabase.co/auth/v1/health");
+              setError("✅ Plain fetch works! Status: "+r1.status);
+            }catch(e1){
+              try{
+                // Test 2: Try fetching anything external
+                setError("Test 2: External fetch...");
+                const r2=await fetch("https://httpbin.org/get");
+                setError("✅ External works ("+r2.status+") but Supabase plain GET fails: "+e1.message);
+              }catch(e2){
+                setError("❌ ALL external fetches blocked. Network/VPN/Firewall issue. e1:"+e1.message+" e2:"+e2.message);
+              }
+            }
+          }} style={{background:"transparent",color:"#555",border:"1px solid #333",borderRadius:10,padding:"8px 0",fontSize:11,cursor:"pointer",width:"100%",marginBottom:4}}>🔍 Run Connection Diagnostic</button>
+          <div style={{textAlign:"center",color:"#444",fontSize:12}}>
+            {mode==="login"?"Don't have an account? ":"Already have an account? "}
+            <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"transparent",border:"none",color:"#39d98a",fontSize:12,fontWeight:700,cursor:"pointer"}}>{mode==="login"?"Sign Up Free":"Sign In"}</button>
+          </div>
+        </div>
+        <div style={{textAlign:"center",marginTop:14,color:"#333",fontSize:10}}>dealometor.com · © 2025 All Rights Reserved</div>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const[user,setUser]=useState(null);
+  const loginUser=(u)=>{localStorage.setItem('sb_user',JSON.stringify(u));setUser(u);};
+  const logoutUser=()=>{localStorage.removeItem('sb_user');setUser(null);};
+  const[authChecked,setAuthChecked]=useState(false);
+  const[page,setPage]=useState("crm");
+
+  // ── SUPABASE AUTH ──
+  useEffect(()=>{
+    // Check for stored session
+    try{
+      const stored=localStorage.getItem('sb_user');
+      if(stored){const u=JSON.parse(stored);setUser(u);}
+    }catch(e){}
+    setAuthChecked(true);
+  },[]);
+
+  if(!authChecked)return<div style={{minHeight:"100vh",background:"#070714",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#39d98a",fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800}}>DealOMetor</div></div>;
+  if(!user)return<LoginPage onLogin={loginUser}/>;
+
+  // ── MODALS & UI STATE ──
+  const[showMenu,setShowMenu]=useState(false);
+  const[showTutorial,setShowTutorial]=useState(()=>!localStorage.getItem("df_tutorial_done"));
+  const[tutStep,setTutStep]=useState(0);
+  const[showSupport,setShowSupport]=useState(false);
+  const[showFAQ,setShowFAQ]=useState(false);
+  const[showVideoTuts,setShowVideoTuts]=useState(false);
+  const[showAgreement,setShowAgreement]=useState(null);
+  const[showCallLog,setShowCallLog]=useState(null);
+  const[showOffer,setShowOffer]=useState(null);
+
+  const nextTut=()=>{if(tutStep>=TUTORIAL_STEPS.length-1){setShowTutorial(false);localStorage.setItem("df_tutorial_done","1");}else setTutStep(p=>p+1);};
+  const skipTut=()=>{setShowTutorial(false);localStorage.setItem("df_tutorial_done","1");};
+
+  // Toast
+  const[toast,setToast]=useState(null);
+  const showToast=(msg,color="#39d98a")=>{setToast({msg,color});setTimeout(()=>setToast(null),2500);};
+
+  // ── CRM STATE ──
+  const[crmMarkets,setCrmMarkets]=useState(()=>{try{const s=localStorage.getItem("df_markets");return s?JSON.parse(s):ALL_MARKETS.slice(0,20);}catch{return ALL_MARKETS.slice(0,20);}});
+  const[crmMarket,setCrmMarket]=useState("Atlanta, GA");
+  const[customMkt,setCustomMkt]=useState("");
+  const[showAddMkt,setShowAddMkt]=useState(false);
+  const[crmSel,setCrmSel]=useState(["preforeclosure","cash"]);
+  const[leads,setLeads]=useState([]);
+  const[saved,setSaved]=useState([]);
+  const[cloudSynced,setCloudSynced]=useState(false);
+  // Load leads from Supabase on login
+  useEffect(()=>{
+    if(!user)return;
+    sb.from('leads').select('*').eq('user_id',user.id).order('saved_at',{ascending:false}).then(({data,error})=>{
+      if(data&&!error){const mapped=data.map(r=>({...r,id:r.id,savedAt:r.saved_at,followUpDate:r.follow_up_date,repliedAt:r.replied_at,offerAmount:r.offer_amount,offerStatus:r.offer_status,userNotes:r.user_notes||'',calls:r.calls||[],details:r.details||{}}));setSaved(mapped);}
+      setCloudSynced(true);
+    });
+  },[user]);
+  const[dismissed,setDismissed]=useState([]);
+  const[crmLoading,setCrmLoading]=useState(false);
+  const[crmTab,setCrmTab]=useState("search");
+  const[typeFilter,setTypeFilter]=useState("all");
+  const[statusFilter,setStatusFilter]=useState("all");
+  const[sortBy,setSortBy]=useState("score");
+
+  useEffect(()=>{try{localStorage.setItem("df_saved_v2",JSON.stringify(saved));}catch{}},[saved]);
+  useEffect(()=>{try{localStorage.setItem("df_markets",JSON.stringify(crmMarkets));}catch{}},[crmMarkets]);
+
+  const addMarket=()=>{const m=customMkt.trim();if(!m)return;if(!crmMarkets.includes(m))setCrmMarkets(p=>[...p,m]);setCrmMarket(m);setCustomMkt("");setShowAddMkt(false);showToast(`✓ Added: ${m}`);};
+  const runSearch=async()=>{if(!crmSel.length)return;setCrmLoading(true);setLeads([]);setDismissed([]);await new Promise(r=>setTimeout(r,900));const all=crmSel.flatMap(type=>Array.from({length:10},(_,i)=>mkLead(type,crmMarket,i))).sort((a,b)=>b.score-a.score);setLeads(all);setCrmLoading(false);setCrmTab("leads");};
+  const saveLead=lead=>{if(saved.find(s=>s.id===lead.id)){showToast("Already saved!","#FB923C");return;}setSaved(p=>{const nl={...lead,savedAt:new Date().toISOString(),status:"new",userNotes:"",calls:[]};saveLeadToCloud(nl);return[nl,...p];});showToast(`✓ Saved: ${lead.name}`);};
+  const removeSaved=id=>{setSaved(p=>p.filter(l=>l.id!==id));showToast("Removed","#FF4444");};
+  const saveLeadToCloud=async(lead)=>{
+    if(!user)return;
+    const row={user_id:user.id,name:lead.name,address:lead.address,city:lead.city,state:lead.state,zip:lead.zip,phone:lead.phone,email:lead.email,type:lead.type,score:lead.score,status:lead.status||'new',source:lead.source,notes:lead.notes,user_notes:lead.userNotes||'',arv:lead.arv||'',repairs:lead.repairs||'',fee:lead.fee||'',offer_amount:lead.offerAmount||'',offer_status:lead.offerStatus||'',replied_at:lead.repliedAt||null,follow_up_date:lead.followUpDate||null,calls:lead.calls||[],details:lead.details||{},saved_at:lead.savedAt||new Date().toISOString()};
+    if(lead.id&&lead.id.length===36&&!lead.id.startsWith('lead-')){
+      await sb.from('leads').upsert({...row,id:lead.id});
+    }else{
+      const{data}=await sb.from('leads').insert(row).select().single();
+      if(data)return data.id;
+    }
+  };
+  const removeLeadFromCloud=async(id)=>{
+    if(!user||!id||id.length!==36)return;
+    await sb.from('leads').delete().eq('id',id).eq('user_id',user.id);
+  };
+  const updateLead=(id,field,value)=>{
+    setSaved(p=>p.map(l=>{if(l.id!==id)return l;const updated={...l,[field]:value};saveLeadToCloud(updated);return updated;}));
+    setLeads(p=>p.map(l=>l.id===id?{...l,[field]:value}:l));
+  };
+  const logCall=(leadId,call,followUpDate)=>{setSaved(p=>p.map(l=>l.id===leadId?{...l,calls:[...(l.calls||[]),call],followUpDate:followUpDate||l.followUpDate,status:l.status==="new"?"contacted":l.status}:l));showToast("📞 Call logged!","#39d98a");};
+  const saveOffer=(leadId,offer)=>{setSaved(p=>p.map(l=>l.id===leadId?{...l,...offer,status:"made_offer"}:l));showToast("💰 Offer saved!","#FB923C");};
+  const getBuyerMatches=lead=>saved.filter(l=>l.type==="cash"&&l.city===lead.city).length;
+  const markReplied=(id)=>{
+    setSaved(p=>p.map(l=>l.id===id?{...l,repliedAt:new Date().toISOString(),status:l.status==="new"?"contacted":l.status}:l));
+    setLeads(p=>p.map(l=>l.id===id?{...l,repliedAt:new Date().toISOString()}:l));
+    showToast("🔔 Reply logged! Status updated to Called","#00FF87");
+  };
+  const exportCSV=data=>{const h=["Name","Type","Address","City","State","Phone","Email","Score","Status","Notes","Source","Saved","Days Old"];const rows=data.map(l=>[l.name,l.type,l.address,l.city,l.state,l.phone,l.email,l.score,l.status||"new",l.userNotes||"",l.source,l.savedAt?new Date(l.savedAt).toLocaleDateString():"",l.savedAt?daysSince(l.savedAt):""]);const csv=[h,...rows].map(r=>r.map(c=>`"${String(c||"").replace(/"/g,'""')}"`).join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`dealflow-${Date.now()}.csv`;a.click();};
+
+  const sortedSaved=useMemo(()=>{
+    let arr=saved.filter(l=>(statusFilter==="all"||l.status===statusFilter)&&(typeFilter==="all"||l.type===typeFilter));
+    if(sortBy==="score")arr=[...arr].sort((a,b)=>b.score-a.score);
+    else if(sortBy==="newest")arr=[...arr].sort((a,b)=>new Date(b.savedAt)-new Date(a.savedAt));
+    else if(sortBy==="stale")arr=[...arr].sort((a,b)=>daysSince(b.savedAt)-daysSince(a.savedAt));
+    else if(sortBy==="status")arr=[...arr].sort((a,b)=>STATUSES.findIndex(s=>s.id===a.status)-STATUSES.findIndex(s=>s.id===b.status));
+    else if(sortBy==="replied")arr=[...arr].sort((a,b)=>(b.repliedAt?1:0)-(a.repliedAt?1:0));
+    // Always float replied leads to top
+    arr=[...arr.filter(l=>l.repliedAt),...arr.filter(l=>!l.repliedAt)];
+    return arr;
+  },[saved,statusFilter,typeFilter,sortBy]);
+
+  const visibleLeads=leads.filter(l=>!dismissed.includes(l.id)&&(typeFilter==="all"||l.type===typeFilter));
+  const staleCount=saved.filter(l=>daysSince(l.savedAt)>=30&&l.status==="new").length;
+  const avgScore=leads.length?(leads.reduce((s,l)=>s+l.score,0)/leads.length).toFixed(1):"0";
+
+  // ── HEAT STATE ──
+  const[allZoneData]=useState(()=>{const d={};METROS.forEach(m=>{d[m.id]=genZones(m);});return d;});
+  const[heatMetro,setHeatMetro]=useState(METROS[0]);
+  const[selectedZone,setSelectedZone]=useState(null);
+  const[heatTab,setHeatTab]=useState("zones");
+  const[heatFilter,setHeatFilter]=useState("all");
+  const[showMetroPicker,setShowMetroPicker]=useState(false);
+  const[metroSearch,setMetroSearch]=useState("");
+
+  const zones=allZoneData[heatMetro.id]||[];
+  const maxHeat=useMemo(()=>Math.max(...zones.map(z=>z.heat)),[zones]);
+  const filteredZones=useMemo(()=>{let arr=[...zones];if(heatFilter==="builders")arr=arr.filter(z=>z.builderActivity>=6);else if(heatFilter==="lots")arr=[...arr].sort((a,b)=>b.lotSales-a.lotSales);else if(heatFilter==="sales")arr=[...arr].sort((a,b)=>b.salesVol-a.salesVol);return arr;},[zones,heatFilter]);
+
+  const rankedMetros=useMemo(()=>METROS.map(m=>{const zs=allZoneData[m.id]||[];const score=Math.round((zs.reduce((s,z)=>s+z.salesVol,0)*0.4+zs.reduce((s,z)=>s+z.permitVol,0)*0.35+zs.reduce((s,z)=>s+z.lotSales,0)*0.25)/10);return{...m,score,hotZones:zs.filter(z=>z.heat>50).length,totalSales:zs.reduce((s,z)=>s+z.salesVol,0),totalPermits:zs.reduce((s,z)=>s+z.permitVol,0)};}).sort((a,b)=>b.score-a.score),[allZoneData]);
+  const maxMScore=Math.max(...rankedMetros.map(m=>m.score));
+
+  const findBuyersInZone=(marketName)=>{setCrmMarket(marketName);if(!crmMarkets.includes(marketName))setCrmMarkets(p=>[...p,marketName]);setCrmSel(["cash"]);setPage("crm");setCrmTab("search");showToast(`🔍 Searching cash buyers in ${marketName}`,"#00FF87");};
+
+  // ── OUTREACH STATE ──
+  const[outLog,setOutLog]=useState(()=>{try{const s=localStorage.getItem("df_outreach_log");return s?JSON.parse(s):{};}catch{return{};}});
+  const[activeScript,setActiveScript]=useState(null);
+  const[outFilter,setOutFilter]=useState("all");
+  const[outSearch,setOutSearch]=useState("");
+  const[outTab,setOutTab]=useState("leads");
+
+  useEffect(()=>{try{localStorage.setItem("df_outreach_log",JSON.stringify(outLog));}catch{}},[outLog]);
+
+  const markSent=(leadId,day)=>{setOutLog(prev=>{const updated={...prev,[leadId]:{...(prev[leadId]||{}),[day]:{sentAt:new Date().toISOString()}}};return updated;});showToast("✓ Marked as sent");};
+
+  const startOutreach=(lead)=>{setPage("outreach");setOutTab("leads");setOutSearch(lead.name);};
+
+  const outLeads=saved.filter(l=>(outFilter==="all"||l.type===outFilter)&&(!outSearch||l.name.toLowerCase().includes(outSearch.toLowerCase())||l.city?.toLowerCase().includes(outSearch.toLowerCase())));
+  const totalSent=Object.values(outLog).reduce((s,v)=>s+Object.keys(v).length,0);
+  const activeSeq=saved.filter(l=>outLog[l.id]&&Object.keys(outLog[l.id]).length>0&&Object.keys(outLog[l.id]).length<5).length;
+  const completedSeq=saved.filter(l=>outLog[l.id]&&Object.keys(outLog[l.id]).length>=5).length;
+
+  // ── GLOBAL HEADER ──
+  const headers={
+    crm:{title:"CRM",sub:"LEADS & PIPELINE",icon:"🏘️",color:"#00FF87"},
+    heat:{title:"HEAT MAP",sub:"MARKET INTELLIGENCE",icon:"🔥",color:"#FF6B35"},
+    outreach:{title:"OUTREACH",sub:"TEXT SEQUENCES",icon:"💬",color:"#00C9FF"},
+  };
+  const h=headers[page];
+
+  return(
+    <div style={{minHeight:"100vh",background:"#070714",color:"#fff"}}>
+      {/* ── MODALS ── */}
+      {showTutorial&&<TutorialOverlay step={tutStep} onNext={nextTut} onSkip={skipTut}/>}
+      {showMenu&&<HamburgerMenu onClose={()=>setShowMenu(false)} onTutorial={()=>{setTutStep(0);setShowTutorial(true);}} onSupport={()=>setShowSupport(true)} onFAQ={()=>setShowFAQ(true)} onVideoTuts={()=>setShowVideoTuts(true)}/>}
+      {showSupport&&<AISupportChat onClose={()=>setShowSupport(false)}/>}
+      {showFAQ&&<FAQPage onClose={()=>setShowFAQ(false)}/>}
+      {showVideoTuts&&<VideoTutorialsPage onClose={()=>setShowVideoTuts(false)}/>}
+      {showAgreement&&<AgreementModal lead={showAgreement} onClose={()=>setShowAgreement(null)}/>}
+      {showCallLog&&<CallLogModal lead={showCallLog} onClose={()=>setShowCallLog(null)} onSave={logCall}/>}
+      {showOffer&&<OfferModal lead={showOffer} onClose={()=>setShowOffer(null)} onSave={saveOffer}/>}
+      <Toast t={toast}/>
+      {activeScript&&<ScriptModal touch={activeScript.touch} lead={activeScript.lead} seq={activeScript.seq} onClose={()=>setActiveScript(null)} onMarkSent={markSent}/>}
+
+      {/* GLOBAL TOP BAR */}
+      <div style={{background:"linear-gradient(135deg,#070714 0%,#0d0f1f 100%)",borderBottom:"1px solid #1aff7722",padding:"10px 18px 10px 14px",position:"sticky",top:0,zIndex:10,display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 2px 20px #00000066"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <img src="data:image/png;base64,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" alt="DealOMetor" style={{height:46,width:46,objectFit:"contain",borderRadius:"50%",flexShrink:0}}/>
+          <div style={{display:"flex",flexDirection:"column",gap:1}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:0,lineHeight:1}}>
+              <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:"#ffffff",letterSpacing:-0.5}}>Deal</span>
+              <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:"#39d98a",letterSpacing:-0.5}}>O</span>
+              <span style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:22,color:"#2ecc5f",letterSpacing:-0.5}}>Metor</span>
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <div style={{height:1,width:12,background:"#39d98a",opacity:0.6}}/>
+              <span style={{color:"#39d98a",fontSize:8,letterSpacing:1.5,fontWeight:600,fontFamily:"'DM Sans',sans-serif",opacity:0.9}}>MEASURE THE MARKET. MASTER THE DEAL.</span>
+              <div style={{height:1,width:12,background:"#39d98a",opacity:0.6}}/>
+            </div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {page==="crm"&&staleCount>0&&<span style={{background:"#FF6B3522",color:"#FF6B35",fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,border:"1px solid #FF6B3533"}}>⏰{staleCount}</span>}
+          
+          <button onClick={()=>setShowMenu(true)} style={{background:"transparent",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",gap:5,padding:"4px",justifyContent:"center",alignItems:"flex-end"}}>
+            <div style={{width:22,height:2,background:"#39d98a",borderRadius:1}}/>
+            <div style={{width:16,height:2,background:"#39d98a",borderRadius:1}}/>
+            <div style={{width:22,height:2,background:"#39d98a",borderRadius:1}}/>
+          </button>
+        </div>
+      </div>
+
+      {/* ═══ CRM ═══ */}
+      {page==="crm"&&<div>
+        <SubTabs tabs={[["search","🔍 Search"],["leads",`📋 Leads(${leads.filter(l=>!dismissed.includes(l.id)).length})`],["pipeline",`💾 Pipeline(${saved.length})`],["deals","📊 Deals"]]} active={crmTab} onChange={setCrmTab} color="#00FF87"/>
+        <div style={{padding:"16px 18px",maxWidth:800,margin:"0 auto"}}>
+
+          {crmTab==="search"&&<div>
+            <div style={{marginBottom:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{color:"#555",fontSize:10,letterSpacing:2,textTransform:"uppercase"}}>Target Market</div>
+              </div>
+              <button onClick={()=>setShowAddMkt(v=>!v)} style={{background:"#00FF87",color:"#000",border:"none",borderRadius:10,padding:"12px 0",fontSize:14,fontWeight:800,cursor:"pointer",width:"100%",marginBottom:12,boxShadow:"0 0 20px #00FF8744",fontFamily:"'Syne',sans-serif"}}>＋ Add Custom City</button>
+              {showAddMkt&&<div style={{display:"flex",gap:8,marginBottom:10}}>
+                <input value={customMkt} onChange={e=>setCustomMkt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addMarket()} placeholder="e.g. Nashville, TN" style={{flex:1,background:"#0d0d1a",border:"1px solid #00FF8733",borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:12,outline:"none"}}/>
+                <button onClick={addMarket} style={{background:"#00FF87",color:"#000",border:"none",borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Add</button>
+              </div>}
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {crmMarkets.map(m=>(
+                  <div key={m} style={{display:"flex",alignItems:"center"}}>
+                    <button onClick={()=>setCrmMarket(m)} style={{background:crmMarket===m?"linear-gradient(135deg,#00FF87,#00C9FF)":"#0d0d1a",color:crmMarket===m?"#000":"#555",border:`1px solid ${crmMarket===m?"transparent":"#ffffff0d"}`,borderRadius:ALL_MARKETS.slice(0,20).includes(m)?"20px":"20px 0 0 20px",padding:"5px 12px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{m}</button>
+                    {!ALL_MARKETS.slice(0,20).includes(m)&&<button onClick={()=>{setCrmMarkets(p=>p.filter(x=>x!==m));if(crmMarket===m)setCrmMarket("Atlanta, GA");}} style={{background:"#FF444422",color:"#FF4444",border:"1px solid #FF444422",borderRadius:"0 20px 20px 0",padding:"5px 7px",fontSize:10,cursor:"pointer",borderLeft:"none"}}>×</button>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{marginBottom:18}}>
+              <div style={{color:"#555",fontSize:10,letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Lead Types</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {CRM_TYPES.map(t=>{const on=crmSel.includes(t.id);return(
+                  <button key={t.id} onClick={()=>setCrmSel(p=>on?p.filter(x=>x!==t.id):[...p,t.id])} style={{background:on?t.color+"18":"#0d0d1a",border:`2px solid ${on?t.color:"#ffffff0d"}`,borderRadius:10,padding:"13px 12px",textAlign:"left",cursor:"pointer"}}>
+                    <div style={{fontSize:20,marginBottom:3}}>{t.icon}</div>
+                    <div style={{color:on?t.color:"#555",fontWeight:700,fontSize:12}}>{t.label}</div>
+                    {on&&<div style={{color:t.color+"88",fontSize:10,marginTop:2}}>✓ Selected</div>}
+                  </button>
+                );})}
+              </div>
+            </div>
+            <button onClick={runSearch} disabled={crmLoading||!crmSel.length} style={{background:(crmLoading||!crmSel.length)?"#1a1a1a":"linear-gradient(135deg,#00FF87,#00C9FF)",color:(crmLoading||!crmSel.length)?"#444":"#000",border:"none",borderRadius:10,padding:"14px 0",fontSize:14,fontWeight:800,cursor:(crmLoading||!crmSel.length)?"not-allowed":"pointer",width:"100%",fontFamily:"'Syne',sans-serif",boxShadow:(crmLoading||!crmSel.length)?"none":"0 0 30px #00FF8722"}}>
+              {crmLoading?"⏳ Scanning Records...":"🚀 Run Lead Search"}
+            </button>
+            {/* IMPORT + HEAT MAP SIDE BY SIDE */}
+            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <label style={{background:"#A78BFA15",border:"1px solid #A78BFA44",borderRadius:12,padding:"16px 10px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",textAlign:"center"}}>
+                <div style={{fontSize:24}}>⬆</div>
+                <div style={{color:"#A78BFA",fontSize:12,fontWeight:800}}>Import CSV</div>
+                <div style={{color:"#555",fontSize:10,lineHeight:1.4}}>DealMachine, BatchLeads & more</div>
+                <input type="file" accept=".csv" style={{display:"none"}} onChange={e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const lines=ev.target.result.split("\n");const headers=lines[0].split(",").map(h=>h.replace(/"/g,"").trim().toLowerCase());const imported=[];for(let i=1;i<lines.length;i++){if(!lines[i].trim())continue;const vals=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||[];const row={};headers.forEach((h,idx)=>{row[h]=(vals[idx]||"").replace(/"/g,"").trim();});if(row.name||row["first name"]){const nm=row.name||((row["first name"]||"")+" "+(row["last name"]||"")).trim();const tp=["cash","preforeclosure","probate","code"].includes(row.type)?row.type:"preforeclosure";imported.push({id:"imp-"+Date.now()+"-"+i,type:tp,name:nm,address:row.address||row["property address"]||"",city:row.city||"",state:row.state||"",zip:row.zip||"",phone:row.phone||row["phone number"]||"",email:row.email||"",score:parseInt(row.score)||5,source:row.source||"CSV Import",notes:row.notes||"Imported from CSV",details:{},savedAt:new Date().toISOString(),status:row.status||"new",userNotes:row["my notes"]||"",arv:"",repairs:"",fee:"",repliedAt:null});}}if(imported.length>0){setSaved(p=>[...imported,...p]);setCrmTab("pipeline");showToast("✅ Imported "+imported.length+" leads — check Pipeline!","#A78BFA");}else{showToast("No valid leads found in CSV","#FF4444");}e.target.value="";};reader.readAsText(file);}}/>
+              </label>
+              <div style={{background:"#FF450015",border:"1px solid #FF450044",borderRadius:12,padding:"16px 10px",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",textAlign:"center"}} onClick={()=>setPage("heat")}>
+                <div style={{fontSize:24}}>🔥</div>
+                <div style={{color:"#FF6B35",fontSize:12,fontWeight:800}}>Heat Map</div>
+                <div style={{color:"#555",fontSize:10,lineHeight:1.4}}>Find hot markets & zones</div>
+              </div>
+            </div>
+
+            <div style={{marginTop:10,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {saved.length>0&&<div style={{background:"#00FF8710",border:"1px solid #00FF8722",borderRadius:10,padding:"11px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><div style={{color:"#00FF87",fontSize:12,fontWeight:700}}>💾 {saved.length} in pipeline</div>{staleCount>0&&<div style={{color:"#FF6B35",fontSize:10,marginTop:1}}>⏰ {staleCount} stale</div>}</div>
+                <button onClick={()=>setCrmTab("pipeline")} style={{background:"#00FF87",color:"#000",border:"none",borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>View →</button>
+              </div>}
+            </div>
+          </div>}
+
+          {crmTab==="leads"&&<div>
+            {leads.length>0?<>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+                {[{l:"Active",v:visibleLeads.length,c:"#00FF87"},{l:"Avg Score",v:avgScore,c:"#A78BFA"},{l:"Pipeline",v:saved.length,c:"#00C9FF"}].map(s=>(
+                  <div key={s.l} style={{background:"#0d0d1a",border:`1px solid ${s.c}22`,borderRadius:10,padding:"11px 12px"}}>
+                    <div style={{color:s.c,fontSize:20,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{s.v}</div>
+                    <div style={{color:"#444",fontSize:10,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+                {[{id:"all",label:"All"},...CRM_TYPES].map(t=><button key={t.id} onClick={()=>setTypeFilter(t.id)} style={{background:typeFilter===t.id?"#ffffff12":"transparent",border:`1px solid ${typeFilter===t.id?"#ffffff22":"#ffffff08"}`,color:typeFilter===t.id?"#fff":"#444",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{t.label||"All"}</button>)}
+              </div>
+              {visibleLeads.map(l=><LeadCard key={l.id} lead={{...l,...(saved.find(s=>s.id===l.id)||{})}} saved={!!saved.find(s=>s.id===l.id)} onSave={saveLead} onRemove={removeSaved} onUpdate={updateLead} onDismiss={id=>setDismissed(p=>[...p,id])} inSaved={false} onStartOutreach={startOutreach} onReply={markReplied} onLogCall={setShowCallLog} onOpenAgreement={setShowAgreement} onOpenOffer={setShowOffer} matchedBuyers={getBuyerMatches(l)}/>)}
+            </>:<div style={{textAlign:"center",padding:"60px 20px",color:"#333"}}>
+              <div style={{fontSize:36,marginBottom:8}}>🏘️</div>
+              <div style={{fontSize:15,color:"#444"}}>No leads yet</div>
+              <button onClick={()=>setCrmTab("search")} style={{marginTop:12,background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:8,padding:"9px 20px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Run Search →</button>
+            </div>}
+          </div>}
+
+          {crmTab==="pipeline"&&<div>
+            {saved.length>0?<>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                {saved.filter(l=>l.repliedAt).length>0&&<div style={{background:"#00FF8722",border:"1px solid #00FF8744",borderRadius:8,padding:"5px 10px",display:"flex",gap:5,alignItems:"center"}}><span style={{color:"#00FF87",fontSize:12,fontWeight:800}}>{saved.filter(l=>l.repliedAt).length}</span><span style={{color:"#00FF8799",fontSize:10}}>🔔 Replied</span></div>}
+                {STATUSES.map(s=>{const c=saved.filter(l=>l.status===s.id).length;return c>0?<div key={s.id} style={{background:s.bg,border:`1px solid ${s.color}33`,borderRadius:8,padding:"5px 10px",display:"flex",gap:5,alignItems:"center"}}><span style={{color:s.color,fontSize:12,fontWeight:800}}>{c}</span><span style={{color:s.color+"99",fontSize:10}}>{s.label}</span></div>:null;})}
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:14}}>{saved.length} Leads</div>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={()=>exportCSV(saved)} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>⬇ CSV</button>
+                  <label style={{background:"#A78BFA22",color:"#A78BFA",border:"1px solid #A78BFA33",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"inline-block"}}>⬆ Import<input type="file" accept=".csv" style={{display:"none"}} onChange={e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const lines=ev.target.result.split("\n");const headers=lines[0].split(",").map(h=>h.replace(/"/g,"").trim().toLowerCase());const imported=[];for(let i=1;i<lines.length;i++){if(!lines[i].trim())continue;const vals=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||[];const row={};headers.forEach((h,idx)=>{row[h]=(vals[idx]||"").replace(/"/g,"").trim();});if(row.name||row["first name"]){const nm=row.name||((row["first name"]||"")+" "+(row["last name"]||"")).trim();const tp=["cash","preforeclosure","probate","code"].includes(row.type)?row.type:"preforeclosure";imported.push({id:"imp-"+Date.now()+"-"+i,type:tp,name:nm,address:row.address||row["property address"]||"",city:row.city||"",state:row.state||"",zip:row.zip||"",phone:row.phone||"",email:row.email||"",score:parseInt(row.score)||5,source:row.source||"CSV Import",notes:row.notes||"Imported from CSV",details:{},savedAt:new Date().toISOString(),status:row.status||"new",userNotes:row["my notes"]||"",arv:"",repairs:"",fee:"",repliedAt:null});}}if(imported.length>0){setSaved(p=>[...imported,...p]);showToast("✅ Imported "+imported.length+" leads!","#A78BFA");}else{showToast("No valid leads in CSV","#FF4444");}e.target.value="";};reader.readAsText(file);}}/></label>
+                  <button onClick={()=>{if(window.confirm("Clear all saved leads?"))setSaved([]);}} style={{background:"transparent",color:"#FF4444",border:"1px solid #FF444433",borderRadius:8,padding:"6px 10px",fontSize:11,cursor:"pointer"}}>Clear</button>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
+                {[{id:"all",label:"All"},...STATUSES].map(s=><button key={s.id} onClick={()=>setStatusFilter(s.id)} style={{background:statusFilter===s.id?(s.bg||"#ffffff12"):"transparent",border:`1px solid ${statusFilter===s.id?(s.color+"55"||"#ffffff22"):"#ffffff08"}`,color:statusFilter===s.id?(s.color||"#fff"):"#444",borderRadius:20,padding:"3px 9px",fontSize:10,fontWeight:600,cursor:"pointer"}}>{s.label||"All"}</button>)}
+              </div>
+              <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
+                <span style={{color:"#444",fontSize:10}}>Sort:</span>
+                {[["score","⭐Score"],["newest","🆕New"],["stale","⏰Stale"],["status","📊Status"]].map(([val,label])=>(
+                  <button key={val} onClick={()=>setSortBy(val)} style={{background:sortBy===val?"#ffffff12":"transparent",border:`1px solid ${sortBy===val?"#ffffff22":"#ffffff08"}`,color:sortBy===val?"#fff":"#444",borderRadius:20,padding:"3px 9px",fontSize:10,fontWeight:600,cursor:"pointer"}}>{label}</button>
+                ))}
+              </div>
+              {sortedSaved.map(l=><LeadCard key={l.id} lead={l} saved={true} onSave={()=>{}} onRemove={removeSaved} onUpdate={updateLead} onDismiss={()=>{}} inSaved={true} onStartOutreach={startOutreach} onReply={markReplied} onLogCall={setShowCallLog} onOpenAgreement={setShowAgreement} onOpenOffer={setShowOffer} matchedBuyers={getBuyerMatches(l)}/>)}
+            </>:<div style={{textAlign:"center",padding:"60px 20px",color:"#333"}}>
+              <div style={{fontSize:36,marginBottom:8}}>💾</div>
+              <div style={{fontSize:15,color:"#444"}}>Pipeline empty</div>
+              <button onClick={()=>setCrmTab("search")} style={{marginTop:12,background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:8,padding:"9px 20px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Run Search →</button>
+            </div>}
+          </div>}
+        </div>
+      </div>}
+
+      
+          {/* DEALS DASHBOARD */}
+          {crmTab==="deals"&&<div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800,marginBottom:14}}>📊 Deal Dashboard</div>
+            {(()=>{
+              const closed=saved.filter(l=>l.status==="closed");
+              const totalFees=closed.reduce((s,l)=>s+(parseFloat(l.fee)||0),0);
+              const avgFee=closed.length?totalFees/closed.length:0;
+              const active=saved.filter(l=>!["closed","dead"].includes(l.status||"new")).length;
+              return<>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+                  {[{l:"Deals Closed",v:closed.length,c:"#39d98a",i:"🎉"},{l:"Total Profit",v:`$${totalFees.toLocaleString(undefined,{maximumFractionDigits:0})}`,c:"#FFD700",i:"💰"},{l:"Avg Deal Fee",v:`$${avgFee.toLocaleString(undefined,{maximumFractionDigits:0})}`,c:"#A78BFA",i:"📈"},{l:"Active Leads",v:active,c:"#00C9FF",i:"⚡"}].map(s=>(
+                    <div key={s.l} style={{background:"#0d0d1a",border:`1px solid ${s.c}22`,borderRadius:12,padding:"14px 14px"}}>
+                      <div style={{fontSize:20,marginBottom:4}}>{s.i}</div>
+                      <div style={{color:s.c,fontSize:22,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{s.v}</div>
+                      <div style={{color:"#444",fontSize:10,textTransform:"uppercase",letterSpacing:1}}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:"#0d0d1a",border:"1px solid #ffffff0d",borderRadius:12,padding:14,marginBottom:14}}>
+                  <div style={{color:"#555",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>Pipeline Funnel</div>
+                  {STATUSES.map(s=>{const c=saved.filter(l=>(l.status||"new")===s.id).length;const pct=saved.length?Math.round((c/saved.length)*100):0;return c>0?(
+                    <div key={s.id} style={{marginBottom:8}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{color:s.color,fontSize:11,fontWeight:600}}>{s.label}</span><span style={{color:"#555",fontSize:11}}>{c} · {pct}%</span></div>
+                      <div style={{height:5,background:"#1a1a2e",borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:s.color,borderRadius:2}}/></div>
+                    </div>
+                  ):null;})}
+                </div>
+                {closed.length>0?<div>
+                  <div style={{color:"#555",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:8}}>Recent Closed</div>
+                  {closed.slice(-5).reverse().map(l=>(
+                    <div key={l.id} style={{background:"#39d98a10",border:"1px solid #39d98a22",borderRadius:10,padding:"11px 14px",marginBottom:8}}>
+                      <div style={{color:"#fff",fontSize:13,fontWeight:700}}>{l.name}</div>
+                      <div style={{color:"#666",fontSize:11,marginTop:1}}>📍 {l.address}, {l.city}</div>
+                      {l.fee&&<div style={{color:"#39d98a",fontSize:12,fontWeight:700,marginTop:3}}>💰 Fee: ${Number(l.fee).toLocaleString()}</div>}
+                    </div>
+                  ))}
+                </div>:<div style={{textAlign:"center",padding:"30px 20px",color:"#333"}}>
+                  <div style={{fontSize:30,marginBottom:6}}>🎯</div>
+                  <div style={{color:"#444",fontSize:13}}>Mark leads "Closed" to track profits</div>
+                </div>}
+              </>;
+            })()}
+          </div>}
+
+    {/* ═══ HEAT MAP ═══ */}
+      {page==="heat"&&<div>
+        <div style={{background:"#0a0a14",borderBottom:"1px solid #ffffff0d",padding:"10px 18px",zIndex:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+            <div style={{color:"#FF8C00",fontSize:12,fontWeight:700}}>📍 {heatMetro.name}</div>
+            <button onClick={()=>setShowMetroPicker(v=>!v)} style={{background:"#FF450020",color:"#FF6B35",border:"1px solid #FF450033",borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Change ▾</button>
+          </div>
+          {showMetroPicker&&<div>
+            <input value={metroSearch} onChange={e=>setMetroSearch(e.target.value)} placeholder="Search markets..." style={{width:"100%",background:"#111",border:"1px solid #ffffff11",borderRadius:8,padding:"7px 12px",color:"#fff",fontSize:12,outline:"none",marginBottom:8}}/>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5,maxHeight:100,overflowY:"auto"}}>
+              {(metroSearch?METROS.filter(m=>m.name.toLowerCase().includes(metroSearch.toLowerCase())):METROS).map(m=>(
+                <button key={m.id} onClick={()=>{setHeatMetro(m);setShowMetroPicker(false);setSelectedZone(null);setMetroSearch("");}} style={{background:heatMetro.id===m.id?"linear-gradient(135deg,#FF4500,#FF8C00)":"#0d0d1a",color:heatMetro.id===m.id?"#fff":"#555",border:`1px solid ${heatMetro.id===m.id?"transparent":"#ffffff0d"}`,borderRadius:20,padding:"4px 11px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{m.name}</button>
+              ))}
+            </div>
+          </div>}
+        </div>
+        <SubTabs tabs={[["zones","🔥 Heat Zones"],["compare","📊 Compare"],["strategy","🎯 Strategy"]]} active={heatTab} onChange={setHeatTab} color="#FF6B35"/>
+        <div style={{padding:"16px 18px",maxWidth:800,margin:"0 auto"}}>
+
+          {heatTab==="zones"&&<div>
+            <div style={{background:"linear-gradient(135deg,#FF450012,#FF8C0012)",border:"1px solid #FF450033",borderRadius:12,padding:"12px 14px",marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800}}>{heatMetro.name}</div><div style={{color:"#FF8C00",fontSize:11,marginTop:1}}>6-Month Snapshot</div></div>
+                <div style={{textAlign:"right"}}><div style={{color:"#FF4500",fontSize:20,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{zones.filter(z=>z.heat>50).length}</div><div style={{color:"#555",fontSize:9}}>HOT ZONES</div></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                {[{l:"Sales",v:zones.reduce((s,z)=>s+z.salesVol,0),c:"#00FF87"},{l:"Permits",v:zones.reduce((s,z)=>s+z.permitVol,0),c:"#00C9FF"},{l:"Top Zone",v:zones[0]?.name.split(" ")[0]||"—",c:"#FF6B35"}].map(s=>(
+                  <div key={s.l} style={{background:"#ffffff05",borderRadius:8,padding:"7px 10px",textAlign:"center"}}>
+                    <div style={{color:s.c,fontSize:15,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{s.v}</div>
+                    <div style={{color:"#444",fontSize:9,textTransform:"uppercase"}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+              {[["all","All"],["builders","🏗️ Builders"],["lots","📦 Top Lots"],["sales","🏠 Top Sales"]].map(([id,label])=>(
+                <button key={id} onClick={()=>setHeatFilter(id)} style={{background:heatFilter===id?"#FF450022":"transparent",border:`1px solid ${heatFilter===id?"#FF450055":"#ffffff08"}`,color:heatFilter===id?"#FF6B35":"#444",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{label}</button>
+              ))}
+            </div>
+            {selectedZone&&<ZoneDetail zone={selectedZone} metro={heatMetro} maxHeat={maxHeat} onClose={()=>setSelectedZone(null)} onFindBuyers={findBuyersInZone}/>}
+            {filteredZones.map((zone,i)=><ZoneCard key={zone.id} zone={zone} rank={i+1} maxHeat={maxHeat} onSelect={z=>setSelectedZone(selectedZone?.id===z.id?null:z)} selected={selectedZone?.id===zone.id}/>)}
+          </div>}
+
+          {heatTab==="compare"&&<div>
+            <div style={{background:"#0d0d1a",borderRadius:10,border:"1px solid #ffffff08",padding:"11px 14px",marginBottom:14}}>
+              <div style={{color:"#FF6B35",fontSize:11,fontWeight:700,marginBottom:3}}>📊 All Markets Ranked</div>
+              <div style={{color:"#555",fontSize:12,lineHeight:1.6}}>Ranked by combined sales, permits, and lot activity over 6 months.</div>
+            </div>
+            {rankedMetros.map((m,i)=>(
+              <div key={m.id} className="fi" style={{background:"#0d0d1a",border:`1px solid ${heatColor(m.score,maxMScore,0.3)}`,borderLeft:`3px solid ${heatColor(m.score,maxMScore,1)}`,borderRadius:10,padding:"11px 14px",marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                      <span style={{color:"#444",fontSize:11,fontWeight:700}}>#{i+1}</span>
+                      <span style={{color:"#fff",fontSize:13,fontWeight:700}}>{m.name}</span>
+                      {i===0&&<span style={{background:"#FF450022",color:"#FF4500",fontSize:9,padding:"1px 6px",borderRadius:10,fontWeight:700}}>🔥 #1</span>}
+                    </div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <span style={{color:"#555",fontSize:11}}>🏠 {m.totalSales}</span>
+                      <span style={{color:"#555",fontSize:11}}>🏗️ {m.totalPermits}</span>
+                      <span style={{color:"#A78BFA",fontSize:11}}>⚡ {m.hotZones} hot</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{color:heatColor(m.score,maxMScore,1),fontSize:18,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{m.score}</div>
+                    <div style={{color:"#333",fontSize:9}}>SCORE</div>
+                  </div>
+                </div>
+                <div style={{marginTop:7,height:3,background:"#1a1a2e",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${(m.score/maxMScore)*100}%`,background:heatColor(m.score,maxMScore,1),borderRadius:2}}/>
+                </div>
+              </div>
+            ))}
+          </div>}
+
+          {heatTab==="strategy"&&<div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,marginBottom:3}}>Infill Lot Playbook</div>
+            <div style={{color:"#555",fontSize:12,marginBottom:14}}>5 steps from heat map to closed deal</div>
+            {[
+              {icon:"🔥",title:"1. Find Hot Zones",color:"#FF4500",body:`Filter by Heat Score. In ${heatMetro.name}, you have ${zones.filter(z=>z.heat>50).length} red-hot zones right now.`},
+              {icon:"🏗️",title:"2. Target Builder Clusters",color:"#A78BFA",body:"Filter 'Builder Hot' zones. These builders need lots — they buy fast, pay fair, and repeat."},
+              {icon:"📦",title:"3. Source Lots in Those Zones",color:"#FB923C",body:"Use code violations, probate, and tax delinquency leads filtered to your hot zones."},
+              {icon:"🤝",title:"4. Build Buyer Relationships",color:"#00C9FF",body:"Find the active builders in the zone detail. Google them, call the permit office, reach out directly."},
+              {icon:"💰",title:"5. Assign & Scale",color:"#00FF87",body:"Get the lot under contract, assign to your builder, collect your fee. Repeat."},
+            ].map((s,i)=>(
+              <div key={i} className="fi" style={{background:"#0d0d1a",border:`1px solid ${s.color}22`,borderLeft:`3px solid ${s.color}`,borderRadius:10,padding:"13px 14px",marginBottom:8}}>
+                <div style={{display:"flex",gap:10}}>
+                  <span style={{fontSize:20,flexShrink:0}}>{s.icon}</span>
+                  <div><div style={{color:s.color,fontSize:13,fontWeight:700,marginBottom:3}}>{s.title}</div><div style={{color:"#777",fontSize:12,lineHeight:1.7}}>{s.body}</div></div>
+                </div>
+              </div>
+            ))}
+            <button onClick={()=>setPage("crm")} style={{background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:10,padding:"13px 0",fontSize:13,fontWeight:800,cursor:"pointer",width:"100%",fontFamily:"'Syne',sans-serif",marginTop:6}}>🚀 Go to CRM → Find Buyers Now</button>
+          </div>}
+        </div>
+      </div>}
+
+      {/* ═══ OUTREACH ═══ */}
+      {page==="outreach"&&<div>
+        <div style={{background:"#0a0a1f",borderBottom:"1px solid #ffffff0d",padding:"10px 18px",position:"sticky",top:58,zIndex:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+            {[{l:"Sent",v:totalSent,c:"#00FF87"},{l:"Active",v:activeSeq,c:"#00C9FF"},{l:"Done",v:completedSeq,c:"#A78BFA"}].map(s=>(
+              <div key={s.l} style={{background:"#ffffff06",borderRadius:8,padding:"7px 10px",textAlign:"center"}}>
+                <div style={{color:s.c,fontSize:16,fontWeight:800,fontFamily:"'Syne',sans-serif"}}>{s.v}</div>
+                <div style={{color:"#444",fontSize:9,textTransform:"uppercase"}}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <SubTabs tabs={[["leads","📋 My Leads"],["scripts","📝 All Scripts"]]} active={outTab} onChange={setOutTab} color="#00C9FF"/>
+        <div style={{padding:"16px 18px",maxWidth:800,margin:"0 auto"}}>
+
+          {outTab==="leads"&&<div>
+            <input value={outSearch} onChange={e=>setOutSearch(e.target.value)} placeholder="Search by name or city..." style={{width:"100%",background:"#0d0d1a",border:"1px solid #ffffff11",borderRadius:8,padding:"8px 12px",color:"#fff",fontSize:12,outline:"none",marginBottom:10}}/>
+            <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+              {[{id:"all",label:"All"},{id:"preforeclosure",label:"⚠️ Pre-FC"},{id:"probate",label:"⚖️ Probate"},{id:"code",label:"🏚️ Code"},{id:"cash",label:"💵 Cash"}].map(f=>(
+                <button key={f.id} onClick={()=>setOutFilter(f.id)} style={{background:outFilter===f.id?"#ffffff12":"transparent",border:`1px solid ${outFilter===f.id?"#ffffff33":"#ffffff08"}`,color:outFilter===f.id?"#fff":"#444",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>{f.label}</button>
+              ))}
+            </div>
+            {outLeads.length>0
+              ?outLeads.map(lead=><OutreachCard key={lead.id} lead={lead} log={outLog} onOpenScript={(l,t,s)=>setActiveScript({lead:l,touch:t,seq:s})}/>)
+              :<div style={{textAlign:"center",padding:"60px 20px",color:"#333"}}>
+                <div style={{fontSize:36,marginBottom:8}}>💬</div>
+                <div style={{fontSize:14,color:"#444"}}>No leads in pipeline yet</div>
+                <div style={{fontSize:12,marginTop:4,color:"#333"}}>Save leads in the CRM to start outreach sequences</div>
+                <button onClick={()=>setPage("crm")} style={{marginTop:14,background:"linear-gradient(135deg,#39d98a,#00C9FF)",color:"#000",border:"none",borderRadius:8,padding:"9px 20px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Go to CRM →</button>
+              </div>
+            }
+          </div>}
+
+          {outTab==="scripts"&&<div>
+            <div style={{color:"#555",fontSize:11,marginBottom:14,lineHeight:1.6}}>All 20 scripts across 4 lead types. Edsa handles seller outreach. Shaun handles cash buyers.</div>
+            {Object.values(SEQUENCES).map(seq=>(
+              <div key={seq.label} style={{marginBottom:20}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                  <span style={{fontSize:18}}>{seq.icon}</span>
+                  <div><div style={{color:seq.color,fontSize:13,fontWeight:800}}>{seq.label}</div><div style={{color:"#444",fontSize:11}}>Sender: {seq.sender} · 5-touch sequence</div></div>
+                </div>
+                {seq.touches.map((touch,i)=>(
+                  <div key={touch.day} style={{background:"#0d0d1a",border:`1px solid ${seq.color}15`,borderLeft:`2px solid ${["#00FF87","#00C9FF","#A78BFA","#FB923C","#FF6B35"][i]}`,borderRadius:8,padding:"11px 13px",marginBottom:6}}>
+                    <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+                      <div style={{flex:1}}>
+                        <div style={{display:"flex",gap:6,marginBottom:4}}>
+                          <span style={{background:["#00FF87","#00C9FF","#A78BFA","#FB923C","#FF6B35"][i]+"22",color:["#00FF87","#00C9FF","#A78BFA","#FB923C","#FF6B35"][i],fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:20}}>Day {touch.day}</span>
+                          <span style={{color:"#666",fontSize:11}}>{touch.label}</span>
+                        </div>
+                        <div style={{color:"#888",fontSize:12,lineHeight:1.6}}>{touch.script("[Name]","[Address]").substring(0,100)}...</div>
+                      </div>
+                      <button onClick={()=>setActiveScript({lead:{name:"[Name]",address:"[Address]",city:"[City]",state:"XX",phone:"",type:Object.keys(SEQUENCES).find(k=>SEQUENCES[k].label===seq.label)},touch,seq})} style={{background:seq.color+"22",color:seq.color,border:`1px solid ${seq.color}33`,borderRadius:7,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:"pointer",flexShrink:0}}>Preview</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>}
+        </div>
+      </div>}
+
+      {/* BOTTOM NAV */}
+      {/* BRANDING BAR - separate from nav */}
+      <div style={{position:"fixed",bottom:58,left:0,right:0,background:"#0a0a1f",borderTop:"1px solid #ffffff06",padding:"5px 18px",display:"flex",justifyContent:"center",alignItems:"center",gap:6,zIndex:49}}>
+        <span style={{color:"#39d98a",fontSize:9,fontWeight:700,letterSpacing:0.5}}>DealOMetor™</span>
+        <span style={{color:"#333",fontSize:9}}>·</span>
+        <span style={{color:"#333",fontSize:9,letterSpacing:0.3}}>Measure the Market. Master the Deal.</span>
+      </div>
+
+      {/* BOTTOM NAV - 3 equal tabs */}
+      <div className="bottom-nav">
+        {[
+          {id:"crm",icon:"🏘️",label:"CRM",badge:staleCount>0?staleCount:null,badgeColor:"#FF6B35"},
+          {id:"heat",icon:"🔥",label:"Heat",badge:null},
+          {id:"outreach",icon:"💬",label:"Outreach",badge:totalSent>0?totalSent:null,badgeColor:"#00C9FF"},
+        ].map(nav=>(
+          <button key={nav.id} className="nav-btn" onClick={()=>setPage(nav.id)} style={{position:"relative",flex:1}}>
+            <span style={{fontSize:22}}>{nav.icon}</span>
+            <div style={{color:page===nav.id?["crm","heat","outreach"].includes(nav.id)?["#00FF87","#FF6B35","#00C9FF"][["crm","heat","outreach"].indexOf(nav.id)]:"#fff":"#444",fontFamily:"'DM Sans',sans-serif",fontSize:10,fontWeight:700}}>{nav.label}</div>
+            {nav.badge&&<div style={{position:"absolute",top:6,right:"50%",transform:"translateX(10px)",background:nav.badgeColor,color:"#000",fontSize:8,fontWeight:800,borderRadius:20,padding:"1px 5px",minWidth:14,textAlign:"center"}}>{nav.badge}</div>}
+            {page===nav.id&&<div style={{position:"absolute",bottom:0,left:"15%",right:"15%",height:2,background:["#00FF87","#FF6B35","#00C9FF"][["crm","heat","outreach"].indexOf(nav.id)],borderRadius:2}}/>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
