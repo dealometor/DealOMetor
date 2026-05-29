@@ -968,6 +968,10 @@ function LoginPage({onLogin}){
             {mode==="login"?"Don't have an account? ":"Already have an account? "}
             <button onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");}} style={{background:"transparent",border:"none",color:"#39d98a",fontSize:12,fontWeight:700,cursor:"pointer"}}>{mode==="login"?"Sign Up Free":"Sign In"}</button>
           </div>
+          <div style={{marginTop:14,paddingTop:12,borderTop:"1px solid #ffffff08",textAlign:"center"}}>
+            <button onClick={()=>onLogin({id:"guest-"+Date.now(),email:"guest",name:"Guest",isGuest:true})} style={{background:"transparent",border:"none",color:"#555",fontSize:13,cursor:"pointer",textDecoration:"underline"}}>Continue without account →</button>
+            <div style={{color:"#333",fontSize:10,marginTop:3}}>Data saves on this device</div>
+          </div>
         </div>
         <div style={{textAlign:"center",marginTop:14,color:"#333",fontSize:10}}>dealometor.com · © 2025 All Rights Reserved</div>
       </div>
